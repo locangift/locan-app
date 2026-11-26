@@ -359,7 +359,7 @@ const kb = (n) => n >= 1e6 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math
 const ext = (t) => (String(t).split('.').pop() || '').slice(0, 4).toUpperCase();
 const hsKey = (ma) => 'la-hs:' + ma;
 function hsLoad(ma, quiet, force) {
-  if (!quiet) { HS.ma = ma; HS.err = ''; HS.d = null; try { const c = JSON.parse(store.get(hsKey(ma)) || 'null'); if (c) HS.d = c; } catch (e) {} }
+  if (!quiet) { if (HS.ma !== ma) HS.loai = ''; HS.ma = ma; HS.err = ''; HS.d = null; try { const c = JSON.parse(store.get(hsKey(ma)) || 'null'); if (c) HS.d = c; } catch (e) {} }
   HS.busy = true; paintHS();
   api({ action: 'ds', ma, force: !!force }).then((d) => { store.set(hsKey(ma), JSON.stringify(d)); if (HS.ma !== ma) return; HS.d = d; HS.busy = false; HS.err = ''; paintHS(); })
     .catch((e) => { if (HS.ma !== ma) return; HS.busy = false; if (!HS.d) HS.err = e.message; paintHS(); });
@@ -392,8 +392,10 @@ function locHoSo(files) {
 function vHoSo(o) {
   if (HS.ma !== o.ma) setTimeout(() => hsLoad(o.ma), 0);
   const d = HS.ma === o.ma ? HS.d : null;
+  const L0 = d ? locHoSo(d.files) : [], dem = (k) => L0.filter((f) => f.k === k).length;
+  /* Chọn loại: vừa lọc danh sách bên dưới, vừa là loại hồ sơ khi gửi file */
   const head = `<div class="hh"><b>Hồ sơ đơn hàng</b><label class="upb">＋ Gửi file<input type="file" id="hs-file" multiple></label></div>
-    <select class="subsel" id="hs-loai" aria-label="Loại hồ sơ"><option value="">Chọn loại hồ sơ trước khi gửi…</option>${LOAI.map((l) => `<option value="${l[0]}" ${HS.loai === l[0] ? 'selected' : ''}>${l[1]}</option>`).join('')}</select>`;
+    <select class="subsel" id="hs-loai" aria-label="Lọc và gửi theo loại hồ sơ"><option value="">Tất cả hồ sơ${d ? ' (' + L0.length + ')' : ''}</option>${LOAI.map((l) => `<option value="${l[0]}" ${HS.loai === l[0] ? 'selected' : ''}>${l[1]}${d ? ' (' + dem(l[0]) + ')' : ''}</option>`).join('')}</select>`;
   const ups = HS.up.filter((u) => u.ma === o.ma).map((u) => `<div class="upr ${u.err ? 'er' : ''}"><b>${esc(u.ten)}</b> · ${u.err ? esc(u.err) : u.done ? 'đã lưu vào OneDrive ✓' : `đang gửi ${u.pct}% (${kb(u.sent)} / ${kb(u.size)})`}${u.err || u.done ? '' : `<div class="trk"><i style="width:${u.pct}%;background:var(--son)"></i></div>`}</div>`).join('');
   if (HS.err) return head + ups + `<div class="err">${esc(HS.err)}</div>`;
   if (!d) return head + ups + '<div class="mut">Đang mở thư mục OneDrive…</div>';
@@ -402,8 +404,10 @@ function vHoSo(o) {
   const row = (f) => `<div class="fl"><span class="fi">${f.anh ? `<img src="${esc(f.anh)}" alt="" loading="lazy">` : esc(ext(f.ten))}</span><span><b>${esc(f.ten)}</b><small>${kb(f.size)} · ${new Date(f.sua).toLocaleDateString('vi-VN')}${f.ai ? ' · ' + esc(f.ai) : ''}</small></span><span class="fa">${/^image\//.test(f.loai) ? `<button data-fview="${esc(f.id)}">Xem</button>` : `<button data-fopen="${esc(f.id)}">Mở</button>`}${isNix() ? `<button class="fx" data-fdel="${esc(f.id)}" data-fn="${esc(f.ten)}" aria-label="Xóa ${esc(f.ten)}">✕</button>` : ''}</span></div>`;
   const cu = (d.cu || []);
   const bn = cu.length ? `<div class="upr" style="background:var(--warnb);color:var(--warn)"><b>Có ${cu.length} bản cũ đã có bản mới hơn:</b>${cu.map((x) => `<div style="font-size:12.5px;margin-top:3px">• ${esc(x.ten)}<br><span style="opacity:.8">→ mới: ${esc(x.moi)}</span></div>`).join('')}<div class="fa" style="margin-top:8px"><button data-cuxoa>Xoá bản cũ</button><button data-cugiu>Giữ lại</button></div></div>` : '';
-  return head + ups + bn + `<div class="mut" style="margin-bottom:4px">${esc(d.thuMuc)} · ${L.length} hồ sơ${HS.busy ? ' · đang làm mới…' : ''}</div>` +
-    LOAI.filter((l) => L.some((f) => f.k === l[0])).map((l) => `<div class="grp">${l[1]}</div>` + L.filter((f) => f.k === l[0]).map(row).join('')).join('');
+  const LL = HS.loai ? L.filter((f) => f.k === HS.loai) : L, tenLoai = HS.loai ? (LOAI.find((l) => l[0] === HS.loai) || [, ''])[1] : '';
+  return head + ups + bn + `<div class="mut" style="margin-bottom:4px">${esc(d.thuMuc)} · ${HS.loai ? LL.length + ' / ' + L.length : L.length} hồ sơ${HS.busy ? ' · đang làm mới…' : ''}</div>` +
+    (HS.loai && !LL.length ? `<div class="mut" style="padding:14px 0">Chưa có file nhóm “${esc(tenLoai)}”. Bấm <b>＋ Gửi file</b> để thêm.</div>` :
+    LOAI.filter((l) => LL.some((f) => f.k === l[0])).map((l) => (HS.loai ? '' : `<div class="grp">${l[1]}</div>`) + LL.filter((f) => f.k === l[0]).map(row).join('')).join(''));
 }
 function paintHS() { const el = document.getElementById('hoso'); const o = S.open && S.data && S.data.orders.find((x) => x.ma === S.open); if (el && o) el.innerHTML = vHoSo(o); }
 const CHUNK = 327680 * 16; // 5 MB, bội số 320 KB theo yêu cầu OneDrive
@@ -441,10 +445,10 @@ async function guiLo(ma, k, list) {
 }
 function openLb(src) { const d = document.createElement('div'); d.className = 'lbx'; d.innerHTML = `<button aria-label="Đóng">✕</button><img alt="">`; d.querySelector('img').src = src; d.addEventListener('click', () => d.remove()); document.body.appendChild(d); }
 document.addEventListener('change', (e) => {
-  if (e.target.id === 'hs-loai') { HS.loai = e.target.value; return; }
+  if (e.target.id === 'hs-loai') { HS.loai = e.target.value; paintHS(); return; }
   if (e.target.id === 'hs-file' && S.open) {
     const k = HS.loai, files = [...e.target.files]; e.target.value = '';
-    if (!k) { alert('Anh chọn loại hồ sơ trước (báo giá, DTKP, file in…) rồi bấm Gửi file.'); return; }
+    if (!k) { alert('Chọn loại hồ sơ ở ô bên dưới (báo giá, DTKP, file in…) rồi bấm Gửi file.'); return; }
     const ten = (LOAI.find((l) => l[0] === k) || [, ''])[1].split(' / ')[0];
     guiLo(S.open, k, files.map((f, i) => { const dot = f.name.lastIndexOf('.'), du = dot > 0 ? f.name.slice(dot) : '';
       const goc0 = dot > 0 ? f.name.slice(0, dot) : f.name, them = /^(img|image|dsc|photo|z\d|screenshot|scan)/i.test(goc0) ? (files.length > 1 ? ' ' + String(i + 1).padStart(2, '0') : '') : ' - ' + goc0;
