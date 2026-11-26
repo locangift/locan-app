@@ -113,6 +113,25 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 .err{background:var(--badb);color:var(--bad);border-radius:10px;padding:8px 10px;font-size:13.5px;font-weight:600}
 .load{padding:40px 0;text-align:center;color:var(--nhat)}
 @media (prefers-reduced-motion:no-preference){.ord,.kc,.chip{transition:background-color .15s}}
+/* Tìm kiếm */
+.sbtn{display:flex;align-items:center;gap:10px;width:100%;max-width:720px;margin:12px auto 0;background:var(--kem);color:var(--nhat);border:0;border-radius:12px;padding:12px 14px;font-size:15px;text-align:left;cursor:pointer}
+.sbtn svg{flex:none;color:var(--son)}
+.sov{position:fixed;inset:0;z-index:90;background:var(--kem);display:flex;flex-direction:column}
+.sov[hidden]{display:none}
+.stop{background:var(--son);padding:calc(10px + env(safe-area-inset-top)) 12px 12px;display:flex;gap:8px;align-items:center}
+.sbox{flex:1;display:flex;align-items:center;gap:8px;background:#fff;border-radius:12px;padding:0 12px}
+.sbox input{flex:1;border:0;outline:0;font-size:17px;padding:12px 0;background:transparent;min-width:0}
+.sbox button{border:0;background:var(--nga);width:26px;height:26px;border-radius:13px;font-size:14px;color:var(--muc)}
+.sx{border:0;background:transparent;color:var(--kem);font-size:15px;font-weight:600;padding:10px 4px}
+.sbody{flex:1;overflow:auto;padding:12px 14px calc(24px + env(safe-area-inset-bottom));max-width:720px;width:100%;margin:0 auto}
+.schips{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 14px}
+.schips button{border:1px solid var(--ke);background:#fff;border-radius:999px;padding:7px 12px;font-size:13.5px;color:var(--muc)}
+.sh3{font-size:12px;font-weight:700;color:var(--nhat);text-transform:uppercase;letter-spacing:.04em;margin:6px 0 8px}
+.sr{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:#fff;border:0;border-radius:12px;padding:10px;margin-bottom:8px;cursor:pointer}
+.sr .th{width:48px;height:48px}
+.sr b{display:block;font-size:15px}.sr small{display:block;font-size:12.5px;color:var(--nhat);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sr mark{background:#F6E3B4;color:inherit;border-radius:3px;padding:0 1px}
+.sr .tags{margin-top:4px}
 /* Hồ sơ OneDrive */
 #hoso .hh{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
 #hoso .hh b{font-size:15px}
@@ -139,6 +158,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 </head>
 <body>
 <div id="app"><div class="load">Đang mở…</div></div>
+<div class="sov" id="sov" hidden role="dialog" aria-label="Tìm đơn hàng"><div class="stop"><div class="sbox"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E2A1E" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="sq" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="Mã đơn, khách, sản phẩm…" aria-label="Từ khoá"><button id="sclr" aria-label="Xoá chữ" hidden>✕</button></div><button class="sx" id="sclose">Đóng</button></div><div class="sbody" id="sres"></div></div>
 
 <script>
 {
@@ -283,6 +303,7 @@ function render() {
   const tabs = [['tq', 'Tổng quan'], ['td', 'Tiến độ'], ['lg', 'Lịch giao'], ['tc', 'Thu chi']];
   const o = S.open && d.orders.find((x) => x.ma === S.open);
   app.innerHTML = `<header><div class="hr"><div><div class="brand">LỘC ẤN</div><div class="sub">Chào ${esc(d.nguoi)} · số liệu lúc ${esc(d.docLuc || '')}</div></div><button class="ib" data-reload aria-label="Làm mới số liệu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></button></div>
+  <button class="sbtn" data-search><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Tìm đơn hàng, khách, sản phẩm…</button>
   ${S.view === 'tq' ? `<div class="stats"><button class="st" data-fil="Run"><b>${run.length}</b><span>đơn đang chạy</span></button><button class="st ${late ? 'hot' : ''}" data-fil="Run"><b>${late}</b><span>đơn có bước trễ</span></button><button class="st" data-view="td"><b>${mine}</b><span>đơn chờ ${esc(d.nguoi)}</span></button></div>` : ''}</header>
   <main>${S.err ? `<div class="err" style="margin-bottom:10px">${esc(S.err)}</div>` : ''}${V()}</main>
   <nav class="tabs" aria-label="Mục">${tabs.map((t) => `<button class="tab" data-view="${t[0]}" ${S.view === t[0] ? 'aria-current="page"' : ''}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${svgTab[t[0]]}</svg>${t[1]}</button>`).join('')}</nav>
@@ -290,6 +311,43 @@ function render() {
 }
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
+/* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
+const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
+const nd = (x) => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'd').toLowerCase();
+function hayOf(o) {
+  return nd([o.ma, o.kh, o.sp, o.tt, o.ghiChu, o.canhBao, o.nhan, o.hanText, o.cur && o.cur.ten, o.cur && o.cur.ai, o.cur && o.tt === 'Run' ? 'cho ' + o.cur.ai : '', o.tre ? 'tre cham qua han' : '', o.tt === 'Run' ? 'dang chay' : '', o.tt === 'Bid' ? 'bao gia cho chot' : '', o.tt === 'Done' ? 'xong hoan tat' : '', o.tt === 'Failed' ? 'truot huy' : '', (o.steps || []).map((s) => s.ai).join(' '), o.phaiThu > 0 ? 'con no phai thu' : ''].join(' '));
+}
+function hl(text, words) { const t = String(text || ''), n = nd(t), on = new Array(t.length).fill(false); if (n.length === t.length) words.forEach((w) => { let j = 0; while (w && (j = n.indexOf(w, j)) >= 0) { for (let k = j; k < j + w.length; k++) on[k] = true; j += w.length; } }); let out = '', open = false; for (let i = 0; i < t.length; i++) { if (on[i] !== open) { out += on[i] ? '<mark>' : '</mark>'; open = on[i]; } out += esc(t[i]); } return out + (open ? '</mark>' : ''); }
+function vTim() {
+  const q = nd($('#sq').value).trim(), words = q.split(/\s+/).filter(Boolean), os = (S.data && S.data.orders) || [];
+  $('#sclr').hidden = !q;
+  const ord = { Run: 0, Bid: 1, Done: 2, Failed: 3 };
+  if (!words.length) {
+    const quick = ['trễ', 'chờ anh Tâm', 'chờ Nix', 'còn nợ', 'báo giá chờ chốt'];
+    $('#sres').innerHTML = (SQ.recent.length ? `<div class="sh3">Tìm gần đây</div><div class="schips">${SQ.recent.map((r) => `<button data-sq="${esc(r)}">${esc(r)}</button>`).join('')}</div>` : '') +
+      `<div class="sh3">Tìm nhanh</div><div class="schips">${quick.map((r) => `<button data-sq="${esc(r)}">${esc(r)}</button>`).join('')}</div>` +
+      `<div class="mut">Gõ một phần mã đơn, tên khách, sản phẩm, tên người làm hoặc ghi chú. Không cần gõ dấu.</div>`;
+    return;
+  }
+  const res = os.map((o) => { const h = hayOf(o); if (!words.every((w) => h.includes(w))) return null;
+      const m = nd(o.ma), sc = words.reduce((s, w) => s + (m.startsWith(w) ? 5 : m.includes(w) ? 3 : nd(o.kh).includes(w) ? 2 : 1), 0); return { o, sc }; })
+    .filter(Boolean).sort((a, b) => b.sc - a.sc || (ord[a.o.tt] ?? 9) - (ord[b.o.tt] ?? 9));
+  $('#sres').innerHTML = res.length ? `<div class="sh3">${res.length} đơn</div>` + res.map(({ o }) => { const [dl, dc] = due(o);
+    return `<button class="sr" data-sopen="${esc(o.ma)}">${thumb(o)}<span style="min-width:0;flex:1"><b>${hl(o.ma, words)}</b><small>${hl(o.kh + ' · ' + o.sp, words)}</small><span class="tags"><span class="tag ${o.tt === 'Run' ? 't-run' : o.tt === 'Bid' ? 't-ok' : 't-idle'}">${esc(o.tt)}</span>${o.tt === 'Run' ? `<span class="tag ${dc}">${esc(dl)}</span>` : ''}${o.cur && o.tt === 'Run' ? `<span class="tag">Chờ ${esc(o.cur.ai)}</span>` : ''}</span></span></button>`; }).join('')
+    : `<div class="mut" style="margin-top:20px;text-align:center">Không thấy đơn nào có “${esc($('#sq').value)}”.<br>Thử gõ ngắn hơn, ví dụ chỉ tên khách.</div>`;
+}
+function moTim(q) { if (!S.data) return; $('#sov').hidden = false; const i = $('#sq'); if (q != null) i.value = q; vTim(); setTimeout(() => i.focus(), 30); }
+function dongTim() { $('#sov').hidden = true; $('#sq').blur(); }
+function luuTim() { const v = $('#sq').value.trim(); if (!v) return; SQ.recent = [v].concat(SQ.recent.filter((x) => nd(x) !== nd(v))).slice(0, 6); store.set('la-tim', JSON.stringify(SQ.recent)); }
+document.addEventListener('input', (e) => { if (e.target.id === 'sq') vTim(); });
+document.addEventListener('keydown', (e) => { if (e.target.id === 'sq' && e.key === 'Enter') { luuTim(); e.target.blur(); } if (e.key === 'Escape' && !$('#sov').hidden) dongTim(); });
+document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-search]')) { moTim(''); return; }
+  if (e.target.closest('#sclose')) { dongTim(); return; }
+  if (e.target.closest('#sclr')) { $('#sq').value = ''; vTim(); $('#sq').focus(); return; }
+  const c = e.target.closest('[data-sq]'); if (c) { $('#sq').value = c.dataset.sq; vTim(); return; }
+  const r = e.target.closest('[data-sopen]'); if (r) { luuTim(); dongTim(); S.open = r.dataset.sopen; render(); }
+});
 function api(body) {
   return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ code: S.code }, body)) })
     .then((r) => r.json()).then((j) => { if (!j.ok) throw new Error(j.error); return j.data; });
