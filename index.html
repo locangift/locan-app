@@ -154,11 +154,26 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 .lbx{position:fixed;inset:0;z-index:80;background:rgba(20,16,14,.92);display:grid;place-items:center;padding:20px}
 .lbx img{max-width:100%;max-height:80vh;border-radius:10px;background:#fff}
 .lbx button{position:absolute;top:calc(14px + env(safe-area-inset-top));right:14px;width:42px;height:42px;border-radius:21px;border:0;background:var(--kem);font-size:18px}
+/* Hộp thư đến + thông báo */
+.hopb{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));z-index:40;border:0;border-radius:999px;background:var(--muc);color:var(--kem);padding:12px 18px;font-size:14.5px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.28);cursor:pointer;white-space:nowrap}
+.hopb[hidden]{display:none}
+.hi{display:flex;gap:10px;align-items:flex-start;background:#fff;border-radius:12px;padding:10px;margin-bottom:8px}
+.hi .fi{flex:none}.hi .fi img{width:100%;height:100%;object-fit:cover}
+.hi .hm{flex:1;min-width:0}.hi .hm b{display:block;font-size:14px;word-break:break-word}.hi .hm small{color:var(--nhat);font-size:12px}
+.hi select{width:100%;margin-top:6px;padding:8px;border:1px solid var(--ke);border-radius:9px;background:#fff;font-size:14px}
+.hx{flex:none;border:0;background:var(--nga);width:32px;height:32px;border-radius:16px;color:var(--muc);font-size:14px;cursor:pointer}
+.hlab{font-size:12.5px;font-weight:700;color:var(--nhat);margin:6px 0 6px;text-transform:uppercase;letter-spacing:.03em}
+.hgo{width:100%;min-height:48px;border:0;border-radius:12px;background:var(--son);color:var(--kem);font-weight:700;font-size:16px;margin-top:10px;cursor:pointer}
+.hgo:disabled{opacity:.55}.hgo2{background:#fff;color:var(--son);border:1px solid var(--ke)}
+.note{background:#fff;border-radius:12px;padding:12px;font-size:14px;line-height:1.5;margin-bottom:10px}
+.hbtns{display:flex;gap:8px}.ib{position:relative}
+.ib .dot{position:absolute;top:8px;right:9px;width:9px;height:9px;border-radius:5px;background:#F2B544;border:1.5px solid var(--son)}.ib .dot[hidden]{display:none}
 </style>
 </head>
 <body>
 <div id="app"><div class="load">Đang mở…</div></div>
 <div class="sov" id="sov" hidden role="dialog" aria-label="Tìm đơn hàng"><div class="stop"><div class="sbox"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E2A1E" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="sq" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="Mã đơn, khách, sản phẩm…" aria-label="Từ khoá"><button id="sclr" aria-label="Xoá chữ" hidden>✕</button></div><button class="sx" id="sclose">Đóng</button></div><div class="sbody" id="sres"></div></div>
+<div class="sov" id="pov" hidden role="dialog" aria-labelledby="pov-t"><div class="stop"><b id="pov-t" style="flex:1;color:var(--kem);font-size:17px;padding-left:4px">Lộc Ấn</b><button class="sx" id="pclose">Đóng</button></div><div class="sbody" id="pres"></div></div>
 
 <script>
 {
@@ -307,7 +322,7 @@ function render() {
   const V = { tq: vTongQuan, td: vTienDo, lg: vLich, tc: vThuChi }[S.view] || vTongQuan;
   const tabs = [['tq', 'Tổng quan'], ['td', 'Tiến độ'], ['lg', 'Lịch giao'], ['tc', 'Thu chi']];
   const o = S.open && d.orders.find((x) => x.ma === S.open);
-  app.innerHTML = `<header><div class="hr"><div><div class="brand">LỘC ẤN</div><div class="sub">Chào ${esc(d.nguoi)} · số liệu lúc ${esc(d.docLuc || '')}</div></div><button class="ib" data-reload aria-label="Làm mới số liệu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></button></div>
+  app.innerHTML = `<header><div class="hr"><div><div class="brand">LỘC ẤN</div><div class="sub">Chào ${esc(d.nguoi)} · số liệu lúc ${esc(d.docLuc || '')}</div></div><div class="hbtns"><button class="ib" data-tb aria-label="Thông báo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9a6 6 0 1 1 12 0c0 6 2.5 8 2.5 8h-17S6 15 6 9"/><path d="M10.2 20.5a2 2 0 0 0 3.6 0"/></svg><i class="dot" ${tbDaBat() ? 'hidden' : ''}></i></button><button class="ib" data-reload aria-label="Làm mới số liệu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></button></div></div>
   <button class="sbtn" data-search><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Tìm đơn hàng, khách, sản phẩm…</button>
   ${S.view === 'tq' ? `<div class="stats"><button class="st" data-fil="Run"><b>${run.length}</b><span>đơn đang chạy</span></button><button class="st ${late ? 'hot' : ''}" data-fil="Run"><b>${late}</b><span>đơn có bước trễ</span></button><button class="st" data-view="td"><b>${mine}</b><span>đơn chờ ${esc(d.nguoi)}</span></button></div>` : ''}</header>
   <main>${S.err ? `<div class="err" style="margin-bottom:10px">${esc(S.err)}</div>` : ''}${V()}</main>
@@ -427,26 +442,29 @@ async function guiFile(ma, file, sub, tenMoi) {
         try {
           const r = await fetch(s.uploadUrl, { method: 'PUT', headers: { 'Content-Range': `bytes ${i}-${end - 1}/${file.size}` }, body: part });
           if (r.status >= 400) throw new Error('OneDrive báo lỗi ' + r.status);
+          if (end >= file.size) { try { u.id = (await r.json()).id; } catch (x) {} }
           break;
         } catch (e) { if (++tries >= 4) throw e; await new Promise((ok) => setTimeout(ok, 1500 * tries)); }
       }
       u.sent = end; u.pct = Math.round(end / file.size * 100); paintHS();
       if (file.size === 0) break;
     }
-    u.done = true; paintHS(); return true;
+    u.done = true; paintHS(); return u.id || true;
   } catch (e) { u.err = 'Gửi chưa được: ' + e.message; paintHS(); return false; }
 }
 /* Gửi bản mới xong: luôn hỏi xác nhận trước khi xóa bản cũ cùng loại. Bản xóa vào Thùng rác OneDrive (30 ngày). */
 async function guiLo(ma, k, list) {
   const cu = ((HS.ma === ma && HS.d && HS.d.files) || []).filter((f) => loaiFile(f) === k);
   const ok = await Promise.all(list.map((x) => guiFile(ma, x.f, '', x.ten)));
-  const xong = list.filter((x, i) => ok[i]); if (!xong.length) { hsLoad(ma, true, true); return; }
+  const xong = list.filter((x, i) => ok[i]); if (!xong.length) { hsLoad(ma, true, true); return ok; }
+  api({ action: 'xong', ma, ids: ok.filter((x) => typeof x === 'string'), ten: xong.map((x) => x.ten) }).catch(() => {});
   const moi = new Set(xong.map((x) => fold(x.ten)));
   let xoa = cu.filter((f) => !moi.has(fold(f.ten)));
   if (MOT_BAN[k] && xong.some((x) => MOT_BAN[k].test(fold(x.ten)))) { const d = new Set(xong.map((x) => duoi(x.ten))); xoa = xoa.filter((f) => MOT_BAN[k].test(fold(f.ten)) && d.has(duoi(f.ten))); }
   if (xoa.length && !confirm('Đây là bản mới thay cho ' + xoa.length + ' file cũ cùng loại?\n\n' + xoa.map((f) => '• ' + f.ten).join('\n') + '\n\nOK: xóa bản cũ (vào Thùng rác OneDrive)\nHủy: giữ cả hai')) xoa = [];
   if (xoa.length) { try { await api({ action: 'thay', ma, ids: xoa.map((f) => f.id) }); } catch (e) { alert('Chưa xóa được bản cũ: ' + e.message); } }
   hsLoad(ma, true, true);
+  return ok;
 }
 function openLb(src) { const d = document.createElement('div'); d.className = 'lbx'; d.innerHTML = `<button aria-label="Đóng">✕</button><img alt="">`; d.querySelector('img').src = src; d.addEventListener('click', () => d.remove()); document.body.appendChild(d); }
 document.addEventListener('change', (e) => {
@@ -454,10 +472,7 @@ document.addEventListener('change', (e) => {
   if (e.target.id === 'hs-file' && S.open) {
     const k = HS.loai, files = [...e.target.files]; e.target.value = '';
     if (!k) { alert('Chọn loại hồ sơ ở ô bên dưới (báo giá, DTKP, file in…) rồi bấm Gửi file.'); return; }
-    const ten = (LOAI.find((l) => l[0] === k) || [, ''])[1].split(' / ')[0];
-    guiLo(S.open, k, files.map((f, i) => { const dot = f.name.lastIndexOf('.'), du = dot > 0 ? f.name.slice(dot) : '';
-      const goc0 = dot > 0 ? f.name.slice(0, dot) : f.name, them = /^(img|image|dsc|photo|z\d|screenshot|scan)/i.test(goc0) ? (files.length > 1 ? ' ' + String(i + 1).padStart(2, '0') : '') : ' - ' + goc0;
-      return { f, ten: S.open + ' - ' + ten + them + du }; }));
+    guiLo(S.open, k, files.map((f) => ({ f, ten: tenHS(S.open, k, f.name) })));
   }
 });
 document.addEventListener('click', (e) => {
@@ -481,10 +496,209 @@ document.addEventListener('click', (e) => {
   api({ action: 'tai', id }).then((r) => { v.disabled = false; if (!r || !r.url) throw new Error('Chưa lấy được link file, anh thử lại.'); if (w) w.location.href = r.url; else if (v.dataset.fopen) location.href = r.url; else openLb(r.url); })
     .catch((x) => { v.disabled = false; if (w) w.close(); alert(x.message); });
 }, true);
+/* ---------- Hộp thư đến: file gửi từ phím tắt iPhone (nằm tạm trên OneDrive) hoặc chia sẻ trên Android (nằm tạm trong máy) ---------- */
+const HOP = { ds: [], loc: [], ma: store.get('la-don-cuoi') || '', q: '', loai: {}, busy: false, err: '' };
+const POV = { mode: '' };
+const loaiDoan = (ten) => { const t = fold('/' + ten); if (BO.test(t)) return ''; const l = LOAI.find((x) => x[2].test(t)); return l ? l[0] : ''; };
+/* Tên file khi lưu vào đơn: <mã đơn> - <loại> - <tên gốc>; giữ tên gốc để không ghi đè file cùng loại */
+function tenHS(ma, k, name) {
+  const ten = (LOAI.find((l) => l[0] === k) || [, ''])[1].split(' / ')[0], dot = name.lastIndexOf('.');
+  const du = dot > 0 ? name.slice(dot) : '', goc0 = (dot > 0 ? name.slice(0, dot) : name).trim();
+  if (fold(goc0).startsWith(fold(ma)) && loaiDoan(name) === k) return name;
+  return ma + ' - ' + ten + ' - ' + goc0 + du;
+}
+const hopItems = () => HOP.ds.map((f) => ({ key: 'od:' + f.id, ten: f.ten, size: f.size, anh: f.anh, od: f }))
+  .concat(HOP.loc.map((x) => ({ key: x.key, ten: x.file.name, size: x.file.size, anh: x.url, loc: x })));
+function paintHopBtn() {
+  let b = $('#hopb'); const n = hopItems().length;
+  if (!b) { b = document.createElement('button'); b.id = 'hopb'; b.className = 'hopb'; b.setAttribute('data-hop', ''); document.body.appendChild(b); }
+  b.hidden = !S.data || !n || !$('#pov').hidden;
+  b.textContent = '📥 ' + n + ' file chờ xếp vào đơn';
+}
+function hopLoad(moNeuMoi) {
+  if (!S.data || window.__MOCK) return Promise.resolve();
+  return api({ action: 'hopds' }).then((ds) => {
+    HOP.ds = ds || [];
+    const da = new Set((store.get('la-hop-da') || '').split('|')), moi = HOP.ds.filter((f) => !da.has(f.id));
+    store.set('la-hop-da', HOP.ds.map((f) => f.id).join('|'));
+    paintHopBtn();
+    if (POV.mode === 'hop') vHop(); else if (moNeuMoi && moi.length && !S.open) moP('hop');
+  }).catch(() => {});
+}
+async function loadChia() {
+  if (!('caches' in window)) return;
+  try {
+    const c = await caches.open('la-chia');
+    for (const k of await c.keys()) {
+      if (HOP.loc.some((x) => x.key === k.url)) continue;
+      const r = await c.match(k); if (!r) continue;
+      const b = await r.blob(), file = new File([b], decodeURIComponent(r.headers.get('x-ten') || 'file'), { type: b.type || r.headers.get('content-type') || '' });
+      HOP.loc.push({ key: k.url, file, url: /^image\//.test(file.type) ? URL.createObjectURL(file) : '' });
+    }
+  } catch (e) {}
+  paintHopBtn();
+}
+async function boChia(key) {
+  try { const c = await caches.open('la-chia'); await c.delete(key); } catch (e) {}
+  const x = HOP.loc.find((y) => y.key === key); if (x && x.url) URL.revokeObjectURL(x.url);
+  HOP.loc = HOP.loc.filter((y) => y.key !== key);
+}
+function donOpts() {
+  const q = fold(HOP.q).trim(), G = [['Run', 'Đang chạy'], ['Giao hàng', 'Đã giao'], ['Bid', 'Báo giá'], ['Done', 'Đã xong']];
+  const L = S.data.orders.filter((o) => o.tt !== 'Failed' && (!q || fold([o.ma, o.kh, o.sp].join(' ')).includes(q)));
+  if (q && L.length === 1) HOP.ma = L[0].ma;
+  return `<option value="">${L.length ? '— Chọn đơn hàng —' : 'Không có đơn khớp'}</option>` + G.map(([tt, ten]) => {
+    const l = L.filter((o) => o.tt === tt);
+    return l.length ? `<optgroup label="${ten}">${l.map((o) => `<option value="${esc(o.ma)}" ${o.ma === HOP.ma ? 'selected' : ''}>${esc(o.ma)}</option>`).join('')}</optgroup>` : '';
+  }).join('');
+}
+function moP(mode) { POV.mode = mode; $('#pov').hidden = false; paintHopBtn(); if (mode === 'hop') vHop(); else vTB(); }
+function dongP() { POV.mode = ''; $('#pov').hidden = true; paintHopBtn(); }
+function vHop() {
+  const L = hopItems();
+  $('#pov-t').textContent = 'Xếp file vào đơn';
+  if (!L.length) { $('#pres').innerHTML = `<div class="note">Không còn file nào chờ xếp.</div>${HOP.err ? `<div class="err">${esc(HOP.err)}</div>` : ''}`; return; }
+  L.forEach((x) => { if (HOP.loai[x.key] == null) HOP.loai[x.key] = loaiDoan(x.ten); });
+  $('#pres').innerHTML = `<div class="hlab">1. Đơn hàng</div>
+    <input id="hq" class="subsel" style="margin:0 0 6px" placeholder="Gõ mã đơn, tên khách để lọc…" value="${esc(HOP.q)}" autocomplete="off">
+    <select id="hdon" class="subsel" style="margin-top:0" aria-label="Đơn hàng">${donOpts()}</select>
+    <div class="hlab">2. Loại hồ sơ của từng file</div>
+    ${L.map((x) => `<div class="hi"><span class="fi">${x.anh ? `<img src="${esc(x.anh)}" alt="">` : esc(ext(x.ten))}</span><span class="hm"><b>${esc(x.ten)}</b><small>${kb(x.size)} · ${x.od ? 'gửi từ phím tắt iPhone' : 'chia sẻ trên máy này'}</small>
+      <select data-hloai="${esc(x.key)}" aria-label="Loại hồ sơ"><option value="">— Chọn loại —</option>${LOAI.map((l) => `<option value="${l[0]}" ${HOP.loai[x.key] === l[0] ? 'selected' : ''}>${l[1]}</option>`).join('')}</select></span>
+      <button class="hx" data-hbo="${esc(x.key)}" aria-label="Bỏ file ${esc(x.ten)}">✕</button></div>`).join('')}
+    ${HOP.err ? `<div class="err">${esc(HOP.err)}</div>` : ''}
+    <button class="hgo" id="hgo" ${HOP.busy ? 'disabled' : ''}>${HOP.busy ? 'Đang xếp…' : 'Xếp ' + L.length + ' file vào đơn'}</button>
+    <div class="mut" style="margin-top:10px;font-size:12.5px;line-height:1.5">File được đặt tên theo mã đơn và loại hồ sơ, lưu vào thư mục đơn trên OneDrive. Có bản cũ cùng loại thì app hỏi anh trước khi xoá.</div>`;
+}
+function hsChon(ma) { if (HS.ma === ma) return; HS.ma = ma; HS.loai = ''; HS.err = ''; HS.d = null; try { HS.d = JSON.parse(store.get(hsKey(ma)) || 'null'); } catch (e) {} }
+async function xepHop() {
+  const L = hopItems(), ma = ($('#hdon') || {}).value;
+  if (!ma) { HOP.err = 'Anh chọn đơn hàng trước.'; vHop(); return; }
+  const thieu = L.filter((x) => !HOP.loai[x.key]);
+  if (thieu.length) { HOP.err = 'Chọn loại hồ sơ cho: ' + thieu.map((x) => x.ten).join(', '); vHop(); return; }
+  HOP.err = ''; HOP.busy = true; HOP.ma = ma; store.set('la-don-cuoi', ma); vHop();
+  hsChon(ma);
+  const loi = [], od = L.filter((y) => y.od), loc = L.filter((y) => y.loc);
+  let daXep = 0;
+  for (const x of od) {
+    try {
+      const ds = await api({ action: 'xep', id: x.od.id, ma, ten: tenHS(ma, HOP.loai[x.key], x.ten) });
+      HOP.ds = HOP.ds.filter((f) => f.id !== x.od.id); delete HOP.loai[x.key]; daXep++;
+      if (ds) { store.set(hsKey(ma), JSON.stringify(ds)); HS.d = ds; }
+    } catch (e) { loi.push(x.ten + ': ' + e.message); }
+  }
+  HOP.busy = false; dongP(); S.open = ma; render();
+  if (loc.length) {
+    try { const d = await api({ action: 'ds', ma }); store.set(hsKey(ma), JSON.stringify(d)); if (HS.ma === ma) { HS.d = d; paintHS(); } } catch (e) {}
+    const byK = {};
+    loc.forEach((x) => { const k = HOP.loai[x.key]; (byK[k] = byK[k] || []).push({ f: x.loc.file, ten: tenHS(ma, k, x.ten), key: x.key }); });
+    for (const k of Object.keys(byK)) {
+      const ok = await guiLo(ma, k, byK[k]);
+      for (let i = 0; i < byK[k].length; i++) if (ok && ok[i]) { await boChia(byK[k][i].key); delete HOP.loai[byK[k][i].key]; }
+    }
+  } else if (!daXep) hsLoad(ma, true);
+  if (loi.length) alert('Chưa xếp được:\n' + loi.join('\n'));
+  paintHopBtn();
+}
+async function boHop(key) {
+  const x = hopItems().find((y) => y.key === key); if (!x) return;
+  if (!confirm('Bỏ "' + x.ten + '" khỏi danh sách chờ?' + (x.od ? '\nFile vào Thùng rác OneDrive, khôi phục được trong 30 ngày.' : ''))) return;
+  if (x.od) { try { await api({ action: 'hopbo', id: x.od.id }); HOP.ds = HOP.ds.filter((f) => f.id !== x.od.id); } catch (e) { alert(e.message); return; } }
+  else await boChia(key);
+  delete HOP.loai[key]; vHop(); paintHopBtn();
+}
+
+/* ---------- Thông báo đẩy (Firebase Cloud Messaging, dự án loc-an-app) ---------- */
+const FB = { apiKey: 'AIzaSyAEPhr8vATIb6nEkc0DOw0s8TMOS_X-Wt4', authDomain: 'loc-an-app.firebaseapp.com', projectId: 'loc-an-app', storageBucket: 'loc-an-app.firebasestorage.app', messagingSenderId: '26458737838', appId: '1:26458737838:web:585683ca739bbf49e8f13f' };
+const VAPID = 'BMI2kHyUqPSTy9M86SdDn0tfPcAWQ8W3x4RfTo7fZX4i8cDeqwoh3v-Q1x5WKR5ogHtVef0pbeH-r-1CTpoflY8';
+const FBV = '13.4.0';
+const TB = { busy: false, err: '', msg: '' };
+const laIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const laApp = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const coTB = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+const tbDaBat = () => coTB() && Notification.permission === 'granted' && !!store.get('la-tb');
+const tenMay = () => laIOS ? 'iPhone' : /Android/.test(navigator.userAgent) ? 'Android' : 'Máy tính';
+let swReg = null;
+if ('serviceWorker' in navigator && window.isSecureContext && !window.__MOCK) {
+  navigator.serviceWorker.register('./sw.js').then((r) => { swReg = r; }).catch(() => {});
+  navigator.serviceWorker.addEventListener('message', (e) => { if (e.data && e.data.mo) moLink(e.data.mo); });
+}
+function moLink(url) {
+  try { const ma = new URL(url, location.href).searchParams.get('don'); if (ma && S.data) { dongP(); dongTim(); S.open = ma; render(); } } catch (e) {}
+}
+async function layToken() {
+  const reg = swReg || await navigator.serviceWorker.ready;
+  const [A, M] = await Promise.all([import(`https://www.gstatic.com/firebasejs/${FBV}/firebase-app.js`), import(`https://www.gstatic.com/firebasejs/${FBV}/firebase-messaging.js`)]);
+  const app = A.getApps().length ? A.getApp() : A.initializeApp(FB);
+  return M.getToken(M.getMessaging(app), { vapidKey: VAPID, serviceWorkerRegistration: reg });
+}
+async function batTB() {
+  TB.err = ''; TB.msg = '';
+  if (!coTB()) { TB.err = laIOS && !laApp() ? 'iPhone chỉ nhận thông báo khi mở app từ biểu tượng Lộc Ấn ngoài màn hình chính.' : 'Trình duyệt này chưa hỗ trợ thông báo. Trên Android anh dùng Chrome.'; vTB(); return; }
+  let p;
+  try { p = await Notification.requestPermission(); } catch (e) { p = Notification.permission; }
+  if (p !== 'granted') { TB.err = 'Điện thoại chưa cho phép thông báo. Vào Cài đặt › Thông báo › Lộc Ấn, bật Cho phép thông báo rồi bấm lại.'; vTB(); return; }
+  TB.busy = true; vTB();
+  try {
+    const t = await layToken(); if (!t) throw new Error('chưa lấy được mã thông báo');
+    await api({ action: 'tbdk', token: t, may: tenMay() }); store.set('la-tb', t);
+    const r = await api({ action: 'tbthu' });
+    TB.msg = r && r.so ? 'Đã bật. Em vừa gửi 1 thông báo thử, anh xem trên màn hình điện thoại.' : 'Đã bật trên máy này.';
+  } catch (e) { TB.err = 'Chưa bật được: ' + e.message; }
+  TB.busy = false; vTB(); paintBell();
+}
+async function tatTB() {
+  const t = store.get('la-tb'); if (t) { try { await api({ action: 'tbhuy', token: t }); } catch (e) {} }
+  store.set('la-tb', null); TB.err = ''; TB.msg = 'Đã tắt thông báo trên máy này.'; vTB(); paintBell();
+}
+function tbSync() {
+  if (!tbDaBat() || window.__MOCK) return;
+  layToken().then((t) => { if (t && t !== store.get('la-tb')) return api({ action: 'tbdk', token: t, may: tenMay() }).then(() => store.set('la-tb', t)); }).catch(() => {});
+}
+function paintBell() { const d = document.querySelector('[data-tb] .dot'); if (d) d.hidden = tbDaBat(); }
+function vTB() {
+  $('#pov-t').textContent = 'Thông báo';
+  const on = tbDaBat(), chan = coTB() && Notification.permission === 'denied';
+  $('#pres').innerHTML = `${laIOS && !laApp() ? `<div class="note"><b>iPhone cần mở app từ màn hình chính</b><br>1. Mở link app bằng Safari<br>2. Bấm nút Chia sẻ › <b>Thêm vào MH chính</b><br>3. Mở app từ biểu tượng Lộc Ấn, vào lại đây bấm Bật thông báo.</div>` : ''}
+    <div class="note"><b>${on ? '🔔 Đang bật trên máy này' : '🔕 Chưa bật trên máy này'}</b>${on ? '' : '<br>Bấm nút bên dưới, khi điện thoại hỏi thì chọn <b>Cho phép</b>.'}</div>
+    ${TB.msg ? `<div class="note" style="background:var(--okb);color:var(--ok)">${esc(TB.msg)}</div>` : ''}${TB.err ? `<div class="err" style="margin-bottom:10px">${esc(TB.err)}</div>` : ''}
+    ${chan ? `<div class="note">Điện thoại đang chặn thông báo của app. iPhone: <b>Cài đặt › Thông báo › Lộc Ấn</b>. Android: <b>Cài đặt › Ứng dụng › Lộc Ấn › Thông báo</b>.</div>` : ''}
+    <button class="hgo" id="tb-bat" ${TB.busy ? 'disabled' : ''}>${TB.busy ? 'Đang bật…' : on ? 'Gửi thông báo thử' : 'Bật thông báo'}</button>
+    ${on ? '<button class="hgo hgo2" id="tb-tat">Tắt trên máy này</button>' : ''}
+    <div class="hlab" style="margin-top:16px">App báo khi</div>
+    <div class="note" style="font-size:13.5px;line-height:1.6">• Có file mới vào đơn (báo cho 2 người còn lại)<br>• Đơn chuyển giai đoạn Bid → Run → Giao hàng<br>• Đơn đã giao và thu đủ, chờ duyệt Done<br>• 8h sáng: đơn trễ hoặc còn ≤ 2 ngày tới hạn giao (anh Nix, anh Tâm)<br><span class="mut">Thông báo chỉ ghi mã đơn, không ghi số tiền.</span></div>`;
+}
+/* Sau mỗi lần tải số liệu */
+function daTai(first) {
+  if (window.__MOCK) return;
+  paintHopBtn(); paintBell();
+  if (!first) { hopLoad(true); return; }
+  const qs = new URLSearchParams(location.search), don = qs.get('don'), chia = qs.has('chia');
+  if (don || chia) history.replaceState(null, '', location.pathname);
+  if (don) { S.open = don; render(); }
+  loadChia().then(() => { if (chia && HOP.loc.length) moP('hop'); });
+  hopLoad(!chia && !don); tbSync();
+}
+document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-hop]')) { HOP.err = ''; moP('hop'); return; }
+  if (e.target.closest('[data-tb]')) { TB.err = ''; TB.msg = ''; moP('tb'); return; }
+  if (e.target.closest('#pclose')) { dongP(); return; }
+  if (e.target.closest('#hgo')) { xepHop(); return; }
+  if (e.target.closest('#tb-bat')) { batTB(); return; }
+  if (e.target.closest('#tb-tat')) { tatTB(); return; }
+  const b = e.target.closest('[data-hbo]'); if (b) boHop(b.dataset.hbo);
+});
+document.addEventListener('change', (e) => {
+  const k = e.target.getAttribute && e.target.getAttribute('data-hloai');
+  if (k != null) { HOP.loai[k] = e.target.value; return; }
+  if (e.target.id === 'hdon') { HOP.ma = e.target.value; HOP.err = ''; }
+});
+document.addEventListener('input', (e) => { if (e.target.id === 'hq') { HOP.q = e.target.value; const s = $('#hdon'); if (s) s.innerHTML = donOpts(); } });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#pov').hidden) dongP(); });
 function loadAv() { api({ action: 'av' }).then((av) => { if (S.data && av && Object.keys(av).length) { S.data.av = Object.assign({}, S.data.av || {}, av); S.avOd = av; render(); } }).catch(() => {}); }
 function load(code) {
   S.busy = true; S.err = ''; render();
-  const ok = (data) => { S.busy = false; if (S.avOd) data.av = Object.assign({}, data.av || {}, S.avOd); const first = !S.data; S.data = data; S.code = code; store.set('la-code', code); render(); if (first && !window.__MOCK) loadAv(); };
+  const ok = (data) => { S.busy = false; if (S.avOd) data.av = Object.assign({}, data.av || {}, S.avOd); const first = !S.data; S.data = data; S.code = code; store.set('la-code', code); render(); if (first && !window.__MOCK) loadAv(); daTai(first); };
   const fail = (e) => { S.busy = false; const m = (e && e.message) || String(e); if (/mã đăng nhập/i.test(m)) { S.data = null; store.set('la-code', null); } S.err = m; render(); };
   if (window.google && google.script && google.script.run) google.script.run.withSuccessHandler(ok).withFailureHandler(fail).layDuLieu(code);
   else if (!window.__MOCK) fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ code }) })
