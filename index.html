@@ -41,7 +41,7 @@ h2{font-family:Spectral,serif;font-size:19px;color:var(--son);margin:0}
 .card{background:#fff;border:1px solid var(--ke);border-radius:14px;padding:12px;margin-bottom:10px}
 .ord{display:flex;gap:10px;align-items:center;width:100%;text-align:left;background:#fff;border:1px solid var(--ke);border-radius:14px;padding:10px;margin-bottom:10px;cursor:pointer}
 .ord:focus-visible,.chip:focus-visible,.tab:focus-visible{outline:2px solid var(--vang);outline-offset:2px}
-.th{width:60px;height:60px;flex:none;border-radius:10px;background:var(--nga);display:grid;place-items:center;color:var(--muc)}
+.th{width:60px;height:60px;flex:none;border-radius:10px;background:var(--nga);display:grid;place-items:center;color:var(--muc);overflow:hidden}.th img{width:100%;height:100%;object-fit:cover;display:block}.th.ini{color:#fff;font-weight:700;font-size:15px;letter-spacing:.5px}.th.s28{width:28px;height:28px;border-radius:6px;font-size:10px}.th.s44{width:44px;height:44px;border-radius:9px;border:1.5px solid rgba(247,242,233,.6)}
 .om{flex:1;display:flex;flex-direction:column;gap:2px}
 .om b{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .om small{font-size:12.5px;color:var(--nhat);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -64,11 +64,11 @@ h2{font-family:Spectral,serif;font-size:19px;color:var(--son);margin:0}
 .kc b{font-size:13px;line-height:1.25}.kc .kf{display:flex;justify-content:space-between;align-items:center;gap:4px}
 .av{width:28px;height:28px;border-radius:14px;background:var(--muc);color:var(--kem);font-size:11px;font-weight:700;display:grid;place-items:center;flex:none}
 /* gantt */
-.gh{display:flex;gap:8px;margin-bottom:4px}.gh .lab{width:104px;flex:none}
+.gh{display:flex;gap:8px;margin-bottom:4px}.gh .lab{width:136px;flex:none}
 .gx{flex:1;position:relative;height:16px}.gx span{position:absolute;font-size:11px;color:var(--nhat);transform:translateX(-2px);white-space:nowrap}
 .gw{position:relative}
 .gr{display:flex;gap:8px;align-items:center;min-height:42px;width:100%;background:none;border:0;padding:0;text-align:left;cursor:pointer}
-.gr .lab{width:104px;flex:none;display:flex;flex-direction:column}.gr .lab b{font-size:12.5px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gr .lab small{font-size:11px;font-weight:600}
+.gr .lab{width:136px;flex:none;display:grid;grid-template-columns:28px minmax(0,1fr);column-gap:6px;align-items:center}.gr .lab .th{grid-row:1/3}.gr .lab b{font-size:12.5px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gr .lab small{font-size:11px;font-weight:600}
 .gt{flex:1;position:relative;height:22px;background:var(--kem);border-radius:6px}
 .gb{position:absolute;top:0;bottom:0;border-radius:6px;border:1.5px solid var(--nga);overflow:hidden;background:var(--nga)}.gb i{display:block;height:100%;background:var(--son)}
 .today{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--muc);pointer-events:none}
@@ -79,7 +79,7 @@ td{padding:8px 4px 8px 0;border-bottom:1px solid var(--nga);vertical-align:top}t
 .hero b{font-family:Spectral,serif;font-size:32px;line-height:1.1;display:block}
 .t3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:10px}.t3 div{background:rgba(247,242,233,.14);border-radius:10px;padding:7px 9px}.t3 span{display:block;font-size:11.5px;opacity:.9}.t3 b{font-family:inherit;font-size:15px}
 .ln{display:flex;flex-direction:column;gap:3px;margin-top:9px;width:100%;background:none;border:0;padding:0;text-align:left;cursor:pointer}
-.ln .lt{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:12.5px}.ln .lt>span:first-child{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ln .lt{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:12.5px}.ln .lt>span:first-child{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:8px}
 .ln .lr{display:flex;gap:6px;align-items:center;flex:none}
 .trk{height:8px;border-radius:4px;background:var(--nga)}.trk i{display:block;height:100%;border-radius:4px}
 /* chi tiết */
@@ -139,6 +139,14 @@ const ICON = {
   but: '<path d="M22 4l6 6-15 15-7 1 1-7z"/><path d="M19 7l6 6"/>',
   giay: '<path d="M8 4h12l5 5v19H8z"/><path d="M20 4v5h5M12 15h9M12 19h9"/>'
 };
+/* Ảnh đại diện đơn (giống app cũ): ảnh sản phẩm/phối cảnh từ OneDrive; chưa có ảnh thì chữ viết tắt khách trên nền màu riêng */
+function thumb(o, cls, style) {
+  const u = S.data && S.data.av && S.data.av[o.ma];
+  if (u) return `<span class="th ${cls || ''}"${style ? ` style="${style}"` : ''}><img src="${u}" alt="" loading="lazy"></span>`;
+  const w = String(o.ma).split(/\s+/)[0], k = w.replace(/[^A-Za-z0-9&]/g, '').slice(0, 3).toUpperCase();
+  let h = 0; for (const ch of w) h = (h * 31 + ch.charCodeAt(0)) % 360;
+  return `<span class="th ini ${cls || ''}" style="background:hsl(${h} 35% 42%);${style || ''}">${esc(k || '?')}</span>`;
+}
 const ico = (k, s) => `<svg width="${s || 34}" height="${s || 34}" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[k] || ICON.giay}</svg>`;
 const svgTab = { tq: '<path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/>', td: '<path d="M4 5h4v14H4zM10 5h4v9h-4zM16 5h4v6h-4z"/>', lg: '<path d="M4 6h16v14H4zM4 10h16M9 3v5M15 3v5"/>', tc: '<circle cx="12" cy="12" r="8"/><path d="M12 7v10M9.5 9.5h4a1.5 1.5 0 0 1 0 3h-3a1.5 1.5 0 0 0 0 3h4"/>' };
 
@@ -166,7 +174,7 @@ function card(o) {
   const [dl, dc] = due(o);
   const step = o.cur ? `Bước ${o.cur.so}/${o.soBuoc} · ${esc(o.cur.ten)}` : (o.soBuoc ? 'Đã xong các bước' : esc(o.sp));
   const cho = o.cur && o.tt === 'Run' ? `<span class="tag">Chờ ${esc(o.cur.ai)}</span>` : '';
-  return `<button class="ord" data-open="${esc(o.ma)}"><span class="th">${ico(o.kind)}</span><span class="om"><b>${esc(o.ma)}</b><small>${step}</small><span class="tags"><span class="tag ${dc}">${esc(dl)}</span>${cho}</span></span>${o.soBuoc ? ring(o.pct, o.tre) : ''}</button>`;
+  return `<button class="ord" data-open="${esc(o.ma)}">${thumb(o)}<span class="om"><b>${esc(o.ma)}</b><small>${step}</small><span class="tags"><span class="tag ${dc}">${esc(dl)}</span>${cho}</span></span>${o.soBuoc ? ring(o.pct, o.tre) : ''}</button>`;
 }
 
 function vTongQuan() {
@@ -181,7 +189,7 @@ function vTienDo() {
   const run = ordersBy('Run');
   const n = STEP.map((_, i) => run.filter((o) => o.cur && o.cur.so === i + 1));
   const mx = Math.max(1, ...n.map((a) => a.length));
-  const cols = n.map((a, i) => a.length ? `<div class="col"><h3><span>${i + 1}. ${STEP[i]}</span><span class="tag">${a.length}</span></h3>${a.map((o) => { const [dl, dc] = due(o); return `<button class="kc" data-open="${esc(o.ma)}" style="border-top-color:${o.tre ? '#B3261E' : dc === 't-warn' ? '#B08A4E' : '#2F7A4B'}"><span class="th" style="width:100%;height:56px;border-radius:8px">${ico(o.kind, 28)}</span><b>${esc(o.ma)}</b><span class="kf"><span class="tag ${dc}">${esc(dl)}</span><span class="av" title="${esc(o.cur.ai)}">${initials(o.cur.ai)}</span></span></button>`; }).join('')}</div>` : '').join('');
+  const cols = n.map((a, i) => a.length ? `<div class="col"><h3><span>${i + 1}. ${STEP[i]}</span><span class="tag">${a.length}</span></h3>${a.map((o) => { const [dl, dc] = due(o); return `<button class="kc" data-open="${esc(o.ma)}" style="border-top-color:${o.tre ? '#B3261E' : dc === 't-warn' ? '#B08A4E' : '#2F7A4B'}">${thumb(o, '', 'width:100%;height:72px;border-radius:8px')}<b>${esc(o.ma)}</b><span class="kf"><span class="tag ${dc}">${esc(dl)}</span><span class="av" title="${esc(o.cur.ai)}">${initials(o.cur.ai)}</span></span></button>`; }).join('')}</div>` : '').join('');
   return `<div class="card"><div class="mut" style="font-weight:600;margin-bottom:8px">Số đơn Run đang ở mỗi bước</div>
   <div class="bars">${n.map((a) => `<div class="bar"><b>${a.length || ''}</b><i style="height:${Math.round(a.length / mx * 60)}px;${a.length ? '' : 'background:#E6DCCD;height:2px'}"></i></div>`).join('')}</div>
   <div class="bl">${SHORT.map((s) => `<span>${s}</span>`).join('')}</div></div>
@@ -197,12 +205,12 @@ function vLich() {
   const rows = run.map((o) => {
     const s = o.nhan && o.nhan > start ? o.nhan : start, late = o.tre || (!o.giaoXong && o.han < t), soon = !late && days(o.han, t) <= 5;
     const w = Math.max(2, (Math.min(SPAN, days(o.han, start)) - days(s, start)) / SPAN * 100);
-    return `<button class="gr" data-open="${esc(o.ma)}"><span class="lab"><b>${esc(o.ma)}</b><small style="color:${late ? '#B3261E' : soon ? '#8A5A00' : '#6B625A'}">${late ? due(o)[0] : 'Hạn ' + dm(o.han)}</small></span><span class="gt"><span class="gb" style="left:${pc(s)};width:${w.toFixed(1)}%;${late ? 'border-color:#B3261E;background:#FBE4E1' : soon ? 'border-color:#B08A4E' : ''}"><i style="width:${o.pct}%;${late ? 'background:#B3261E' : ''}"></i></span></span></button>`;
+    return `<button class="gr" data-open="${esc(o.ma)}"><span class="lab">${thumb(o, 's28')}<b>${esc(o.ma)}</b><small style="color:${late ? '#B3261E' : soon ? '#8A5A00' : '#6B625A'}">${late ? due(o)[0] : 'Hạn ' + dm(o.han)}</small></span><span class="gt"><span class="gb" style="left:${pc(s)};width:${w.toFixed(1)}%;${late ? 'border-color:#B3261E;background:#FBE4E1' : soon ? 'border-color:#B08A4E' : ''}"><i style="width:${o.pct}%;${late ? 'background:#B3261E' : ''}"></i></span></span></button>`;
   }).join('');
   const noHan = ordersBy('Run').filter((o) => !o.han);
   const wk = ordersBy('Run').filter((o) => o.han && !o.giaoXong && days(o.han, t) <= 7).sort((a, b) => a.han < b.han ? -1 : 1);
   return `<div class="card"><div class="gh"><span class="lab"></span><div class="gx">${ticks}</div></div>
-  <div class="gw">${rows || '<div class="empty">Chưa có đơn có hạn giao.</div>'}<span class="today" style="left:calc(112px + (100% - 112px) * ${(14 / SPAN).toFixed(3)})"></span></div>
+  <div class="gw">${rows || '<div class="empty">Chưa có đơn có hạn giao.</div>'}<span class="today" style="left:calc(144px + (100% - 144px) * ${(14 / SPAN).toFixed(3)})"></span></div>
   <div class="mut" style="margin-top:8px">Thanh từ ngày nhận đơn tới hạn giao, phần tô son là số bước đã xong. Vạch đen là hôm nay ${dm(t)}.</div></div>
   <div class="card"><h2 style="font-size:17px;margin-bottom:6px">Phải giao trong 7 ngày</h2>${wk.length ? `<table><thead><tr><th>Ngày</th><th>Đơn</th><th>Bước</th></tr></thead><tbody>${wk.map((o) => `<tr><td class="n" style="color:${o.han < t ? '#B3261E' : 'inherit'}">${dm(o.han)}</td><td>${esc(o.ma)}</td><td class="n">${o.cur ? o.cur.so + '/' + o.soBuoc : '—'}</td></tr>`).join('')}</tbody></table>` : '<div class="mut">Không có đơn nào phải giao trong 7 ngày tới.</div>'}</div>
   ${noHan.length ? `<div class="card"><div class="mut" style="font-weight:600">Chưa có hạn giao (${noHan.length})</div><div style="font-size:13px;margin-top:4px">${noHan.map((o) => esc(o.ma)).join(' · ')}</div></div>` : ''}`;
@@ -213,7 +221,7 @@ function vThuChi() {
   const thu = S.data.orders.filter((o) => o.tt !== 'Failed' && o.phaiThu > 0).sort((a, b) => (a.hanThu || '9') < (b.hanThu || '9') ? -1 : 1);
   const chi = S.data.orders.filter((o) => o.tt === 'Run' && o.conChi > 0).sort((a, b) => (a.han || '9') < (b.han || '9') ? -1 : 1);
   const mt = Math.max(1, ...thu.map((o) => o.phaiThu)), mc = Math.max(1, T.chiCoDinh || 0, ...chi.map((o) => o.conChi));
-  const ln = (o, amt, chip, cls, m, col) => `<button class="ln" data-open="${esc(o.ma)}"><span class="lt"><span>${esc(o.ma)}</span><span class="lr"><b>${tr(amt)}</b><span class="tag ${cls}">${esc(chip)}</span></span></span><span class="trk"><i style="width:${Math.max(3, Math.round(amt / m * 100))}%;background:${col}"></i></span></button>`;
+  const ln = (o, amt, chip, cls, m, col) => `<button class="ln" data-open="${esc(o.ma)}"><span class="lt"><span>${thumb(o, 's28')}${esc(o.ma)}</span><span class="lr"><b>${tr(amt)}</b><span class="tag ${cls}">${esc(chip)}</span></span></span><span class="trk"><i style="width:${Math.max(3, Math.round(amt / m * 100))}%;background:${col}"></i></span></button>`;
   return `<div class="hero"><span class="sub">Số dư theo sổ</span><b>${vnd(T.soDu)}</b><div class="t3"><div><span>Phải thu</span><b>${tr(T.phaiThu)}</b></div><div><span>Phải chi</span><b>${tr(T.phaiChi)}</b></div><div><span>Còn lại sau cùng</span><b>${tr(T.conLai)}</b></div></div></div>
   <div class="card"><div class="row" style="margin:0"><h2 style="font-size:17px">Khách còn nợ</h2><span class="mut">hạn sớm ở trên</span></div>
   ${thu.length ? thu.map((o) => { const late = o.thuTre || (o.hanThu && o.hanThu < t); return ln(o, o.phaiThu, late ? 'Quá hạn · ' + dm(o.hanThu) : o.hanThu ? dm(o.hanThu) : 'Chưa hẹn', late ? 't-bad' : o.hanThu && days(o.hanThu, t) <= 5 ? 't-warn' : 't-idle', mt, late ? '#B3261E' : '#2F7A4B'); }).join('') : '<div class="mut">Không còn khoản nào.</div>'}</div>
@@ -229,7 +237,7 @@ function vChiTiet(o) {
   const sl = o.steps.map((s) => { const c = s.tt === 'Xong' ? '#2F7A4B' : s.tt === 'Trễ' ? '#B3261E' : s.tt === 'Đang làm' ? '#2B5F9E' : '#D9CFC0'; return `<div class="sl"><i style="background:${c}"></i><b>${s.so}. ${esc(s.ten)}</b><span class="tag ${s.tt === 'Xong' ? 't-ok' : s.tt === 'Trễ' ? 't-bad' : s.tt === 'Đang làm' ? 't-run' : 't-idle'}">${esc(s.tt)}</span><small>${esc(s.ai)} · ${s.tt === 'Xong' ? 'xong ' + dm(s.xong) : 'hạn ' + dm(s.hx)}${s.viec ? ' · ' + esc(s.viec) : ''}</small></div>`; }).join('');
   const bar = (lab, a, b, col) => `<div style="margin-top:8px"><div class="lt" style="display:flex;justify-content:space-between;font-size:12.5px"><span style="font-weight:600">${lab}</span><span><b>${tr(a)}</b> / ${tr(b)}</span></div><div class="trk" style="height:12px;margin-top:3px"><i style="width:${b ? Math.min(100, Math.round(a / b * 100)) : 0}%;background:${col}"></i></div></div>`;
   const doc = (lab, y) => `<div class="doc ${y ? 'y' : ''}"><em>${y ? '✓' : '—'}</em><b>${lab}</b><small style="color:${y ? '#2F7A4B' : '#B3261E'}">${y ? 'Có' : 'Chưa'}</small></div>`;
-  return `<div class="sh"><button class="back" data-close aria-label="Quay lại"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><div style="display:flex;flex-direction:column"><span class="ser" style="font-size:19px;font-weight:700">${esc(o.ma)}</span><span class="sub">${esc(o.sp)} · ${esc(o.kh)}</span></div></div>
+  return `<div class="sh"><button class="back" data-close aria-label="Quay lại"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>${thumb(o, 's44')}<div style="display:flex;flex-direction:column;min-width:0"><span class="ser" style="font-size:19px;font-weight:700">${esc(o.ma)}</span><span class="sub">${esc(o.sp)} · ${esc(o.kh)}</span></div></div>
   <main style="padding-bottom:40px">
   <div class="tags" style="margin-bottom:10px"><span class="tag ${o.tt === 'Run' ? 't-run' : o.tt === 'Bid' ? 't-ok' : 't-idle'}">${esc(o.tt)}</span><span class="tag ${dc}">${esc(dl)}</span>${o.cur && o.tt === 'Run' ? `<span class="tag">Chờ ${esc(o.cur.ai)}</span>` : ''}${o.canhBao && o.canhBao !== 'OK' ? `<span class="tag t-bad">${esc(o.canhBao)}</span>` : ''}</div>
   ${o.steps.length ? `<div class="card"><div class="mut" style="font-weight:600;margin-bottom:10px">Sơ đồ ${o.steps.length} bước · xong ${o.daXong}/${o.steps.length}</div><div class="metro">${metro}</div></div>` : '<div class="card mut">Đơn chưa có tiến độ trong tab Tiến độ của sổ.</div>'}
