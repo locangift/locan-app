@@ -295,7 +295,7 @@ function api(body) {
     .then((r) => r.json()).then((j) => { if (!j.ok) throw new Error(j.error); return j.data; });
 }
 /* ---------- Hồ sơ đơn: file thật trong OneDrive › Đơn hàng B2B › khách › mã đơn ---------- */
-const HS = { ma: null, d: null, err: '', busy: false, up: [], sub: '' };
+const HS = { ma: null, d: null, err: '', busy: false, up: [], loai: '' };
 const isNix = () => S.data && S.data.nguoi === 'Nix';
 const kb = (n) => n >= 1e6 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
 const ext = (t) => (String(t).split('.').pop() || '').slice(0, 4).toUpperCase();
@@ -305,27 +305,48 @@ function hsLoad(ma, quiet) {
   api({ action: 'ds', ma }).then((d) => { if (HS.ma !== ma) return; HS.d = d; HS.busy = false; HS.err = ''; paintHS(); })
     .catch((e) => { if (HS.ma !== ma) return; HS.busy = false; HS.err = e.message; paintHS(); });
 }
+/* Hồ sơ theo quy trình: chỉ hiện file đúng 8 loại; file khác (tham khảo, file khách gửi, ảnh màn hình...) ẩn */
+const LOAI = [
+  ['bg', 'Báo giá', /bao gia|quotation/],
+  ['hd', 'Hợp đồng / PO', /hop dong|\bpo\b|don dat hang|purchase order|phu luc/],
+  ['dtkp', 'Dự trù kinh phí', /dtkp|du tru/],
+  ['lsx', 'Lệnh sản xuất / phiếu in', /lenh san xuat|\blsx\b|phieu in/],
+  ['fsx', 'File in / file khuôn', /file in|file khuon|khuon be|file san xuat|file sx|\/0?4 file in\//],
+  ['mau', 'Mẫu duyệt / phối cảnh', /phoi canh|mau chot|mau duyet|duyet mau|mockup|avatar/],
+  ['anh', 'Ảnh thực tế sản phẩm', /anh thuc te|anh san pham|san pham thuc te|da in|anh sx|anh san xuat/],
+  ['nt', 'Giao hàng / nghiệm thu / thanh toán', /phieu giao|giao hang|bien ban|nghiem thu|hoa don|de nghi thanh toan|uy nhiem|chuyen khoan|phieu thu|bien nhan/],
+];
+const BO = /tham khao|file khach gui|mau khach gui|anh man hinh|screenshot|tom tat|doanh thu chi phi|_to_delete|_cho xoa/;
+const fold = (x) => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'd').toLowerCase();
+function loaiFile(f) { const t = fold('/' + (f.thu ? f.thu + '/' : '') + f.ten); if (BO.test(t)) return null; const l = LOAI.find((x) => x[2].test(t)); return l ? l[0] : null; }
+const goc = (f) => fold(f.ten).replace(/\.[a-z0-9]+$/, '').replace(/\(\d+\)|\bcopy\b|ban sao|\bfinal\b|\bv\d+\b|\(?\d{1,2}-\d{1,2}(-\d{2,4})?\)?/g, ' ').replace(/[\s_\-]+/g, ' ').trim();
+/* Trùng (cùng loại, cùng tên gốc, kể cả khác đuôi xlsx/pdf): chỉ hiện bản mới nhất */
+function locHoSo(files) {
+  const by = {};
+  files.forEach((f) => { const k = loaiFile(f); if (!k) return; const g = k + '|' + goc(f); const cur = by[g];
+    if (!cur || f.sua > cur.sua || (f.sua === cur.sua && /pdf/.test(f.loai))) by[g] = Object.assign({ k }, f); });
+  return Object.values(by).sort((a, b) => (a.sua < b.sua ? 1 : -1));
+}
 function vHoSo(o) {
   if (HS.ma !== o.ma) setTimeout(() => hsLoad(o.ma), 0);
   const d = HS.ma === o.ma ? HS.d : null;
-  const subs = d ? d.thuMucCon : [];
-  const head = `<div class="hh"><b>Hồ sơ trên OneDrive</b><label class="upb">＋ Gửi file<input type="file" id="hs-file" multiple></label></div>
-    ${subs.length ? `<select class="subsel" id="hs-sub" aria-label="Gửi vào thư mục"><option value="">Gửi vào: thư mục đơn</option>${subs.map((x) => `<option ${HS.sub === x ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select>` : ''}`;
+  const head = `<div class="hh"><b>Hồ sơ đơn hàng</b><label class="upb">＋ Gửi file<input type="file" id="hs-file" multiple></label></div>
+    <select class="subsel" id="hs-loai" aria-label="Loại hồ sơ"><option value="">Chọn loại hồ sơ trước khi gửi…</option>${LOAI.map((l) => `<option value="${l[0]}" ${HS.loai === l[0] ? 'selected' : ''}>${l[1]}</option>`).join('')}</select>`;
   const ups = HS.up.filter((u) => u.ma === o.ma).map((u) => `<div class="upr ${u.err ? 'er' : ''}"><b>${esc(u.ten)}</b> · ${u.err ? esc(u.err) : u.done ? 'đã lưu vào OneDrive ✓' : `đang gửi ${u.pct}% (${kb(u.sent)} / ${kb(u.size)})`}${u.err || u.done ? '' : `<div class="trk"><i style="width:${u.pct}%;background:var(--son)"></i></div>`}</div>`).join('');
   if (HS.err) return head + ups + `<div class="err">${esc(HS.err)}</div>`;
   if (!d) return head + ups + '<div class="mut">Đang mở thư mục OneDrive…</div>';
-  if (!d.files.length) return head + ups + `<div class="mut">${d.thuMuc ? 'Thư mục ' + esc(d.thuMuc) + ' chưa có file.' : 'Đơn này chưa có thư mục trên OneDrive. Gửi file đầu tiên là app tự tạo thư mục.'}</div>`;
-  const by = {}; d.files.forEach((f) => (by[f.thu] = by[f.thu] || []).push(f));
+  const L = locHoSo(d.files);
+  if (!L.length) return head + ups + `<div class="mut">${d.thuMuc ? 'Chưa có hồ sơ theo quy trình trong thư mục ' + esc(d.thuMuc) + '.' : 'Đơn này chưa có thư mục trên OneDrive. Gửi file đầu tiên là app tự tạo thư mục.'}</div>`;
   const row = (f) => `<div class="fl"><span class="fi">${f.anh ? `<img src="${esc(f.anh)}" alt="" loading="lazy">` : esc(ext(f.ten))}</span><span><b>${esc(f.ten)}</b><small>${kb(f.size)} · ${new Date(f.sua).toLocaleDateString('vi-VN')}${f.ai ? ' · ' + esc(f.ai) : ''}</small></span><span class="fa">${/^image\//.test(f.loai) ? `<button data-fview="${esc(f.id)}">Xem</button>` : `<button data-fopen="${esc(f.id)}">Mở</button>`}${isNix() ? `<button class="fx" data-fdel="${esc(f.id)}" data-fn="${esc(f.ten)}" aria-label="Xóa ${esc(f.ten)}">✕</button>` : ''}</span></div>`;
-  return head + ups + `<div class="mut" style="margin-bottom:4px">${esc(d.thuMuc)} · ${d.files.length} file${HS.busy ? ' · đang làm mới…' : ''}</div>` +
-    Object.keys(by).sort().map((k) => (k ? `<div class="grp">${esc(k)}</div>` : '') + by[k].map(row).join('')).join('');
+  return head + ups + `<div class="mut" style="margin-bottom:4px">${esc(d.thuMuc)} · ${L.length} hồ sơ${HS.busy ? ' · đang làm mới…' : ''}</div>` +
+    LOAI.filter((l) => L.some((f) => f.k === l[0])).map((l) => `<div class="grp">${l[1]}</div>` + L.filter((f) => f.k === l[0]).map(row).join('')).join('');
 }
 function paintHS() { const el = document.getElementById('hoso'); const o = S.open && S.data && S.data.orders.find((x) => x.ma === S.open); if (el && o) el.innerHTML = vHoSo(o); }
 const CHUNK = 327680 * 16; // 5 MB, bội số 320 KB theo yêu cầu OneDrive
-async function guiFile(ma, file, sub) {
-  const u = { ma, ten: file.name, size: file.size, sent: 0, pct: 0 }; HS.up.push(u); paintHS();
+async function guiFile(ma, file, sub, tenMoi) {
+  const u = { ma, ten: tenMoi || file.name, size: file.size, sent: 0, pct: 0 }; HS.up.push(u); paintHS();
   try {
-    const s = await api({ action: 'gui', ma, ten: file.name, thuMucCon: sub });
+    const s = await api({ action: 'gui', ma, ten: tenMoi || file.name, thuMucCon: sub });
     for (let i = 0; i < file.size || (i === 0 && file.size === 0); i += CHUNK) {
       const end = Math.min(file.size, i + CHUNK), part = file.slice(i, end);
       let tries = 0;
@@ -344,8 +365,15 @@ async function guiFile(ma, file, sub) {
 }
 function openLb(src) { const d = document.createElement('div'); d.className = 'lbx'; d.innerHTML = `<button aria-label="Đóng">✕</button><img alt="">`; d.querySelector('img').src = src; d.addEventListener('click', () => d.remove()); document.body.appendChild(d); }
 document.addEventListener('change', (e) => {
-  if (e.target.id === 'hs-sub') { HS.sub = e.target.value; return; }
-  if (e.target.id === 'hs-file' && S.open) { const sub = (document.getElementById('hs-sub') || {}).value || ''; [...e.target.files].forEach((f) => guiFile(S.open, f, sub)); e.target.value = ''; }
+  if (e.target.id === 'hs-loai') { HS.loai = e.target.value; return; }
+  if (e.target.id === 'hs-file' && S.open) {
+    const k = HS.loai, files = [...e.target.files]; e.target.value = '';
+    if (!k) { alert('Anh chọn loại hồ sơ trước (báo giá, DTKP, file in…) rồi bấm Gửi file.'); return; }
+    const ten = (LOAI.find((l) => l[0] === k) || [, ''])[1].split(' / ')[0];
+    files.forEach((f, i) => { const dot = f.name.lastIndexOf('.'), du = dot > 0 ? f.name.slice(dot) : '';
+      const goc0 = dot > 0 ? f.name.slice(0, dot) : f.name, them = /^(img|image|dsc|photo|z\d|screenshot|scan)/i.test(goc0) ? (files.length > 1 ? ' ' + String(i + 1).padStart(2, '0') : '') : ' - ' + goc0;
+      guiFile(S.open, f, '', S.open + ' - ' + ten + them + du); });
+  }
 });
 document.addEventListener('click', (e) => {
   const v = e.target.closest('[data-fview],[data-fopen],[data-fdel]'); if (!v) return;
