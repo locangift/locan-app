@@ -368,6 +368,7 @@ function hsLoad(ma, quiet, force) {
 const LOAI = [
   ['bg', 'Báo giá', /bao gia|quotation/],
   ['hd', 'Hợp đồng / PO', /hop dong|\bpo\b|don dat hang|purchase order|phu luc/],
+  ['kh', 'File khách gửi', /file khach gui|mau khach gui|khach gui/],
   ['dtkp', 'Dự trù kinh phí', /dtkp|du tru/],
   ['lsx', 'Lệnh sản xuất / phiếu in', /lenh san xuat|\blsx\b|phieu in/],
   ['fsx', 'File in / file khuôn', /file in|file khuon|khuon be|file san xuat|file sx|\/0?4 file in\//],
@@ -375,7 +376,9 @@ const LOAI = [
   ['anh', 'Ảnh thực tế sản phẩm', /anh thuc te|anh san pham|san pham thuc te|da in|anh sx|anh san xuat/],
   ['nt', 'Giao hàng / nghiệm thu / thanh toán', /phieu giao|giao hang|bien ban|nghiem thu|hoa don|de nghi thanh toan|uy nhiem|chuyen khoan|phieu thu|bien nhan/],
 ];
-const BO = /tham khao|file khach gui|mau khach gui|anh man hinh|screenshot|tom tat|doanh thu chi phi|_to_delete|_cho xoa/;
+const BO = /tham khao|anh man hinh|screenshot|tom tat|doanh thu chi phi|_to_delete|_cho xoa/;
+const MOT_BAN = { bg: /bao gia|quotation/, dtkp: /dtkp|du tru/, lsx: /lenh san xuat|\blsx\b/ };
+const duoi = (n) => { const e = (fold(n).match(/\.([a-z0-9]+)$/) || [, ''])[1]; return /^xls/.test(e) ? 'xls' : /^(jpe?g|png|heic|webp)$/.test(e) ? 'anh' : /^docx?$/.test(e) ? 'doc' : e; };
 const fold = (x) => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'd').toLowerCase();
 function loaiFile(f) { const t = fold('/' + (f.thu ? f.thu + '/' : '') + f.ten); if (BO.test(t)) return null; const l = LOAI.find((x) => x[2].test(t)); return l ? l[0] : null; }
 const goc = (f) => fold(f.ten).replace(/\.[a-z0-9]+$/, '').replace(/\(\d+\)|\bcopy\b|ban sao|\bfinal\b|\bv\d+\b|\(?\d{1,2}-\d{1,2}(-\d{2,4})?\)?/g, ' ').replace(/[\s_\-]+/g, ' ').trim();
@@ -419,8 +422,20 @@ async function guiFile(ma, file, sub, tenMoi) {
       u.sent = end; u.pct = Math.round(end / file.size * 100); paintHS();
       if (file.size === 0) break;
     }
-    u.done = true; paintHS(); hsLoad(ma, true, true);
-  } catch (e) { u.err = 'Gửi chưa được: ' + e.message; paintHS(); }
+    u.done = true; paintHS(); return true;
+  } catch (e) { u.err = 'Gửi chưa được: ' + e.message; paintHS(); return false; }
+}
+/* Gửi bản mới: báo giá / DTKP / lệnh SX tự xóa bản cũ; loại khác hỏi có thay bản cũ không. Bản xóa vào Thùng rác OneDrive (30 ngày). */
+async function guiLo(ma, k, list) {
+  const cu = ((HS.ma === ma && HS.d && HS.d.files) || []).filter((f) => loaiFile(f) === k);
+  const ok = await Promise.all(list.map((x) => guiFile(ma, x.f, '', x.ten)));
+  const xong = list.filter((x, i) => ok[i]); if (!xong.length) { hsLoad(ma, true, true); return; }
+  const moi = new Set(xong.map((x) => fold(x.ten)));
+  let xoa = cu.filter((f) => !moi.has(fold(f.ten)));
+  if (MOT_BAN[k] && xong.some((x) => MOT_BAN[k].test(fold(x.ten)))) { const d = new Set(xong.map((x) => duoi(x.ten))); xoa = xoa.filter((f) => MOT_BAN[k].test(fold(f.ten)) && d.has(duoi(f.ten))); }
+  else if (xoa.length && !confirm('Đây là bản mới thay cho ' + xoa.length + ' file cũ cùng loại?\n\n' + xoa.map((f) => '• ' + f.ten).join('\n') + '\n\nOK: xóa bản cũ (vào Thùng rác OneDrive)\nHủy: giữ cả hai')) xoa = [];
+  if (xoa.length) { try { await api({ action: 'thay', ma, ids: xoa.map((f) => f.id) }); } catch (e) { alert('Chưa xóa được bản cũ: ' + e.message); } }
+  hsLoad(ma, true, true);
 }
 function openLb(src) { const d = document.createElement('div'); d.className = 'lbx'; d.innerHTML = `<button aria-label="Đóng">✕</button><img alt="">`; d.querySelector('img').src = src; d.addEventListener('click', () => d.remove()); document.body.appendChild(d); }
 document.addEventListener('change', (e) => {
@@ -429,9 +444,9 @@ document.addEventListener('change', (e) => {
     const k = HS.loai, files = [...e.target.files]; e.target.value = '';
     if (!k) { alert('Anh chọn loại hồ sơ trước (báo giá, DTKP, file in…) rồi bấm Gửi file.'); return; }
     const ten = (LOAI.find((l) => l[0] === k) || [, ''])[1].split(' / ')[0];
-    files.forEach((f, i) => { const dot = f.name.lastIndexOf('.'), du = dot > 0 ? f.name.slice(dot) : '';
+    guiLo(S.open, k, files.map((f, i) => { const dot = f.name.lastIndexOf('.'), du = dot > 0 ? f.name.slice(dot) : '';
       const goc0 = dot > 0 ? f.name.slice(0, dot) : f.name, them = /^(img|image|dsc|photo|z\d|screenshot|scan)/i.test(goc0) ? (files.length > 1 ? ' ' + String(i + 1).padStart(2, '0') : '') : ' - ' + goc0;
-      guiFile(S.open, f, '', S.open + ' - ' + ten + them + du); });
+      return { f, ten: S.open + ' - ' + ten + them + du }; }));
   }
 });
 document.addEventListener('click', (e) => {
