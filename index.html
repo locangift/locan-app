@@ -195,6 +195,9 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 .ck span{flex:1;line-height:1.35}.ck small{font-size:11px;color:var(--nhat);white-space:nowrap}
 .gsub{font-size:11px;font-weight:700;color:var(--nhat);text-transform:uppercase;letter-spacing:.04em;margin:8px 0 2px 18px}
 .gdd .sl{margin-left:18px}
+.mt{cursor:pointer}.mt.sel span{color:var(--son);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.bp{margin-top:12px;background:var(--kem);border-radius:12px;padding:10px 12px}.bph{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}.bph b{font-size:14.5px}
+.bpq{font-size:13.5px;line-height:1.45;margin-bottom:4px}.bpb2{margin-top:8px;border:1px solid var(--ke);background:#fff;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:600;color:var(--nhat);cursor:pointer}
 </style>
 </head>
 <body>
@@ -212,8 +215,10 @@ const dm = (iso) => iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) : '';
 const days = (a, b) => Math.round((Date.parse(a + 'T00:00:00Z') - Date.parse(b + 'T00:00:00Z')) / 864e5);
 const addD = (iso, n) => new Date(Date.parse(iso + 'T00:00:00Z') + n * 864e5).toISOString().slice(0, 10);
 const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} } };
-const STEP = ['Chốt đơn', 'DTKP + lệnh SX', 'Duyệt file / mẫu', 'Mua NVL', 'In ấn', 'Thành phẩm', 'Kiểm, đóng gói', 'Giao hàng', 'Nghiệm thu, thu tiền', 'Đủ hồ sơ'];
-const SHORT = ['Chốt', 'DTKP', 'Duyệt', 'NVL', 'In', 'T.phẩm', 'Kiểm', 'Giao', 'Thu', 'Hồ sơ'];
+/* Timeline 10 bước (anh Nix chốt 27/11/2026), lưu ở tab Tiến độ của sổ */
+const STEP = ['Chốt', 'DTKP', 'Lệnh sản xuất', 'File sản xuất', 'Nguyên vật liệu', 'In', 'Thành phẩm', 'Giao hàng', 'Thu tiền', 'Done'];
+const SHORT = ['Chốt', 'DTKP', 'Lệnh SX', 'File SX', 'NVL', 'In', 'T.phẩm', 'Giao', 'Thu', 'Done'];
+const QDB = ['Có PO, hợp đồng đã ký, xác nhận qua tin nhắn/email, hoặc khách chuyển cọc / đủ tiền', 'Có file DTKP trên app hoặc đã biết tổng chi phí dự kiến', 'Có file lệnh sản xuất trên app', 'Đã gửi đủ file sản xuất (app hỏi lại mỗi khi gửi file sản xuất)', 'Đã trả đủ tiền nguyên vật liệu trong DTKP, hoặc anh Tâm xác nhận đã mua đủ', 'Đã trả đủ tiền in trong DTKP, hoặc anh Tâm báo đã in xong', 'Đã trả đủ tiền thành phẩm, hoặc anh Tâm báo đã xong thành phẩm', 'Đủ chứng từ đến khâu giao hàng và xác nhận đã giao', 'Khách đã thanh toán đủ', 'Đủ hồ sơ, đã thu và đã chi hoàn tất'];
 const ICON = {
   lich: '<path d="M5 9h22v17H5z"/><path d="M5 14h22M11 6v6M21 6v6M10 19h3M15 19h3M20 19h2M10 23h3"/>',
   so: '<path d="M8 5h17v22H8z"/><path d="M8 5v22M5 9h4M5 14h4M5 19h4M5 24h4M13 11h8M13 15h6"/>',
@@ -373,7 +378,7 @@ function vTT(o) {
 /* ---------- Quy trình 4 giai đoạn (chốt 26/11/2026): Bid → Run → Giao hàng → Done ---------- */
 const GD = ['Bid', 'Run', 'Giao hàng', 'Done'];
 const QT = {};
-const gdBuoc = (s) => { const t = nd(s.ten); return /giao hang|nghiem thu|thu tien/.test(t) ? 'Giao hàng' : /du ho so|done|hoan tat/.test(t) ? 'Done' : 'Run'; };
+const gdBuoc = (s) => { const t = nd(s.ten); return /giao hang/.test(t) ? 'Giao hàng' : /thu tien|nghiem thu|du ho so|done|hoan tat/.test(t) ? 'Done' : 'Run'; };
 function vQT(o) {
   const idx = GD.indexOf(o.tt), fail = o.tt === 'Failed', h = o.hoSo || {};
   const L = HS.ma === o.ma && HS.d ? locHoSo(HS.d.files) : null;
@@ -398,15 +403,54 @@ function vQT(o) {
   return `<div class="hh2"><b>Quy trình đơn</b>${fail ? '<span class="tag t-idle">Failed · đơn không thành</span>' : `<span class="mut">đang ở ${esc(o.tt)}</span>`}</div><div class="gdl">${pill}</div>${L ? '' : '<div class="mut" style="margin:2px 0 6px">Đang đối chiếu chứng từ với thư mục OneDrive…</div>'}${sec}`;
 }
 document.addEventListener('toggle', (e) => { const d = e.target; if (d && d.classList && d.classList.contains('gdd')) QT[d.dataset.k] = d.open; }, true);
+/* ---------- Timeline 10 bước: bấm vào bước để xem quy tắc và xác nhận ---------- */
+const BP = { ma: '', so: 0 };
+function vTL(o) {
+  if (!o.steps.length) return '<div class="mut">Đơn chưa có tiến độ trong sổ. Khi đơn chuyển Run, máy chủ tự tạo 10 bước trong vòng 5 phút.</div>';
+  const sel = BP.ma === o.ma ? BP.so : 0;
+  const metro = o.steps.map((s, i) => { const cls = s.tt === 'Xong' ? 'x' : s.tt === 'Trễ' ? 't' : o.cur && o.cur.so === s.so ? 'c' : ''; const nx = o.steps[i + 1]; return `<div class="mt ${cls} ${sel === s.so ? 'sel' : ''}" role="button" tabindex="0" data-buoc="${s.so}" style="--ln:${s.tt === 'Xong' && nx ? '#2F7A4B' : '#E6DCCD'}"><i>${s.tt === 'Xong' ? '✓' : s.so}</i><span>${SHORT[s.so - 1] || esc(s.ten)}</span></div>`; }).join('');
+  const s = sel && o.steps.find((x) => x.so === sel);
+  const tag = (t) => `<span class="tag ${t === 'Xong' ? 't-ok' : t === 'Trễ' ? 't-bad' : t === 'Đang làm' ? 't-run' : 't-idle'}">${esc(t)}</span>`;
+  const bp = s ? `<div class="bp"><div class="bph"><b>${s.so}. ${esc(STEP[s.so - 1] || s.ten)}</b>${tag(s.tt)}</div>
+    <div class="bpq">Xong khi: ${esc(QDB[s.so - 1] || '')}</div>
+    <div class="mut">${esc(s.ai || '')}${s.tt === 'Xong' ? ' · xong ' + dm(s.xong) : s.hx ? ' · hạn ' + dm(s.hx) : ' · chưa có hạn'}${s.viec ? ' · ' + esc(s.viec) : ''}</div>
+    ${s.so >= 10 ? '<div class="mut" style="margin-top:6px">Bước này tự chuyển khi đơn Done.</div>' : s.tt === 'Xong' ? `<button class="bpb2" data-bxn="0">Bỏ xác nhận</button>` : `<button class="hgo" data-bxn="1" style="margin-top:8px">✓ Xác nhận đã xong</button>`}</div>` : '<div class="mut" style="margin-top:8px">Bấm vào từng bước để xem khi nào xong và xác nhận.</div>';
+  return `<div class="mut" style="font-weight:600;margin-bottom:10px">Sơ đồ ${o.steps.length} bước · xong ${o.daXong}/${o.steps.length}</div><div class="metro">${metro}</div>${bp}`;
+}
+function paintTL() { const el = document.getElementById('tl'), o = S.open && S.data && S.data.orders.find((x) => x.ma === S.open); if (el && o) el.innerHTML = vTL(o); }
+async function xacNhanBuoc(ma, so, xong) {
+  const o = S.data && S.data.orders.find((x) => x.ma === ma), s = o && o.steps.find((x) => x.so === so);
+  try {
+    await api({ action: 'buoc', ma, so, xong });
+    if (s) { s.tt = xong ? 'Xong' : 'Đang làm'; s.xong = xong ? S.data.today : ''; o.daXong = o.steps.filter((x) => x.tt === 'Xong').length; o.cur = o.steps.find((x) => x.tt !== 'Xong') || null; }
+    paintTL(); load(S.code);
+  } catch (e) { alert('Chưa ghi được: ' + e.message); }
+}
+/* Gửi file sản xuất xong: hỏi đã đủ chưa, đủ thì đánh dấu bước 4 */
+function hoiDuFileSX(ma) {
+  const o = S.data && S.data.orders.find((x) => x.ma === ma), s = o && o.steps.find((x) => x.so === 4);
+  if (!s || s.tt === 'Xong') return;
+  if (confirm('Đã đủ file sản xuất cho đơn ' + ma + ' chưa?\n\nOK: đủ rồi, đánh dấu bước File sản xuất xong.\nHủy: chưa đủ, sẽ gửi thêm.')) xacNhanBuoc(ma, 4, true);
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-buoc]');
+  if (b && S.open) { const so = +b.dataset.buoc; BP.so = BP.ma === S.open && BP.so === so ? 0 : so; BP.ma = S.open; paintTL(); return; }
+  const x = e.target.closest('[data-bxn]');
+  if (x && S.open && BP.ma === S.open && BP.so) {
+    const o = S.data.orders.find((y) => y.ma === S.open), s = o && o.steps.find((y) => y.so === BP.so), xong = x.dataset.bxn === '1';
+    let hoi = (xong ? 'Xác nhận bước "' : 'Bỏ xác nhận bước "') + (STEP[BP.so - 1] || '') + '" của đơn ' + S.open + (xong ? ' đã xong?' : '?');
+    if (xong && BP.so === 8 && HS.ma === S.open && HS.d && !locHoSo(HS.d.files).some((f) => f.k === 'anh')) hoi += '\n\nLưu ý: chưa thấy ảnh thực tế sản phẩm trên app.';
+    if (s && confirm(hoi)) { x.disabled = true; xacNhanBuoc(S.open, BP.so, xong); }
+  }
+});
 function vChiTiet(o) {
   const [dl, dc] = due(o), t = S.data.today;
-  const metro = o.steps.map((s, i) => { const cls = s.tt === 'Xong' ? 'x' : s.tt === 'Trễ' ? 't' : o.cur && o.cur.so === s.so ? 'c' : ''; const nx = o.steps[i + 1]; return `<div class="mt ${cls}" style="--ln:${s.tt === 'Xong' && nx ? '#2F7A4B' : '#E6DCCD'}"><i>${s.tt === 'Xong' ? '✓' : s.so}</i><span>${SHORT[s.so - 1] || esc(s.ten)}</span></div>`; }).join('');
   const bar = (lab, a, b, col) => `<div style="margin-top:8px"><div class="lt" style="display:flex;justify-content:space-between;font-size:12.5px"><span style="font-weight:600">${lab}</span><span><b>${tr(a)}</b> / ${tr(b)}</span></div><div class="trk" style="height:12px;margin-top:3px"><i style="width:${b ? Math.min(100, Math.round(a / b * 100)) : 0}%;background:${col}"></i></div></div>`;
   return `<div class="sh"><button class="back" data-close aria-label="Quay lại"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>${thumb(o, 's44')}<div style="display:flex;flex-direction:column;min-width:0"><span class="ser" style="font-size:19px;font-weight:700">${esc(o.ma)}</span><span class="sub">${esc(o.sp)} · ${esc(o.kh)}</span></div></div>
   <main style="padding-bottom:40px">
   <div class="tags" style="margin-bottom:10px"><span class="tag ${ttCls(o)}">${esc(o.tt)}</span><span class="tag ${dc}">${esc(dl)}</span>${o.cur && o.tt === 'Run' ? `<span class="tag">Chờ ${esc(o.cur.ai)}</span>` : ''}${o.canhBao && o.canhBao !== 'OK' ? `<span class="tag t-bad">${esc(o.canhBao)}</span>` : ''}</div>
   <div class="card" id="ttdon">${vTT(o)}</div>
-  ${o.steps.length ? `<div class="card"><div class="mut" style="font-weight:600;margin-bottom:10px">Sơ đồ ${o.steps.length} bước · xong ${o.daXong}/${o.steps.length}</div><div class="metro">${metro}</div></div>` : '<div class="card mut">Đơn chưa có tiến độ trong tab Tiến độ của sổ.</div>'}
+  <div class="card" id="tl">${vTL(o)}</div>
   <div class="card" id="qt">${vQT(o)}</div>
   <div class="card"><div class="mut" style="font-weight:600">Tiền của đơn</div>${bar('Đã thu', o.daThu, o.dt, '#2F7A4B')}${bar('Đã chi', o.daChi, o.dtkp, '#8E2A1E')}<div class="mut" style="margin-top:8px">Doanh thu dự kiến ${vnd(o.dt)} · DTKP ${vnd(o.dtkp)} · còn phải thu ${vnd(o.phaiThu)}</div></div>
   <div class="card" id="hoso">${vHoSo(o)}</div>
@@ -565,6 +609,7 @@ async function guiLo(ma, k, list) {
   const ok = await Promise.all(list.map((x) => guiFile(ma, x.f, '', x.ten)));
   const xong = list.filter((x, i) => ok[i]); if (!xong.length) { hsLoad(ma, true, true); return ok; }
   api({ action: 'xong', ma, ids: ok.filter((x) => typeof x === 'string'), ten: xong.map((x) => x.ten) }).catch(() => {});
+  if (k === 'fsx') setTimeout(() => hoiDuFileSX(ma), 400);
   const moi = new Set(xong.map((x) => fold(x.ten)));
   let xoa = cu.filter((f) => !moi.has(fold(f.ten)));
   if (MOT_BAN[k] && xong.some((x) => MOT_BAN[k].test(fold(x.ten)))) { const d = new Set(xong.map((x) => duoi(x.ten))); xoa = xoa.filter((f) => MOT_BAN[k].test(fold(f.ten)) && d.has(duoi(f.ten))); }
@@ -690,7 +735,7 @@ async function xepHop() {
   for (const x of od) {
     try {
       const ds = await api({ action: 'xep', id: x.od.id, ma, ten: tenHS(ma, HOP.loai[x.key], x.ten) });
-      HOP.ds = HOP.ds.filter((f) => f.id !== x.od.id); delete HOP.loai[x.key]; daXep++;
+      HOP.ds = HOP.ds.filter((f) => f.id !== x.od.id); x.loaiDaXep = HOP.loai[x.key]; delete HOP.loai[x.key]; daXep++;
       if (ds) { store.set(hsKey(ma), JSON.stringify(ds)); HS.d = ds; }
     } catch (e) { loi.push(x.ten + ': ' + e.message); }
   }
@@ -705,6 +750,7 @@ async function xepHop() {
     }
   } else if (!daXep) hsLoad(ma, true);
   if (loi.length) alert('Chưa xếp được:\n' + loi.join('\n'));
+  if (daXep && od.some((x) => HOP.loai[x.key] === 'fsx' || x.loaiDaXep === 'fsx')) setTimeout(() => hoiDuFileSX(ma), 400);
   paintHopBtn();
 }
 async function boHop(key) {
