@@ -624,7 +624,12 @@ if ('serviceWorker' in navigator && window.isSecureContext && !window.__MOCK) {
   navigator.serviceWorker.addEventListener('message', (e) => { if (e.data && e.data.mo) moLink(e.data.mo); });
 }
 function moLink(url) {
-  try { const ma = new URL(url, location.href).searchParams.get('don'); if (ma && S.data) { dongP(); dongTim(); S.open = ma; render(); } } catch (e) {}
+  try {
+    const q = new URL(url, location.href).searchParams, ma = q.get('don');
+    if (!S.data) return;
+    if (q.has('hop')) { dongTim(); hopLoad(false).then(() => moP('hop')); return; }
+    if (ma) { dongP(); dongTim(); S.open = ma; render(); }
+  } catch (e) {}
 }
 async function layToken() {
   const reg = swReg || await navigator.serviceWorker.ready;
@@ -673,11 +678,11 @@ function daTai(first) {
   if (window.__MOCK) return;
   paintHopBtn(); paintBell();
   if (!first) { hopLoad(true); return; }
-  const qs = new URLSearchParams(location.search), don = qs.get('don'), chia = qs.has('chia');
-  if (don || chia) history.replaceState(null, '', location.pathname);
+  const qs = new URLSearchParams(location.search), don = qs.get('don'), chia = qs.has('chia'), hop = qs.has('hop');
+  if (don || chia || hop) history.replaceState(null, '', location.pathname);
   if (don) { S.open = don; render(); }
   loadChia().then(() => { if (chia && HOP.loc.length) moP('hop'); });
-  hopLoad(!chia && !don); tbSync();
+  hopLoad(!chia && !don).then(() => { if (hop) moP('hop'); }); tbSync();
 }
 document.addEventListener('click', (e) => {
   if (e.target.closest('[data-hop]')) { HOP.err = ''; moP('hop'); return; }
