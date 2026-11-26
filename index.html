@@ -47,7 +47,7 @@ h2{font-family:Spectral,serif;font-size:19px;color:var(--son);margin:0}
 .om small{font-size:12.5px;color:var(--nhat);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:3px}
 .tag{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--nga);white-space:nowrap}
-.t-bad{background:var(--badb);color:var(--bad)}.t-warn{background:var(--warnb);color:var(--warn)}.t-ok{background:var(--okb);color:var(--ok)}.t-run{background:var(--runb);color:var(--run)}.t-idle{background:var(--nga);color:var(--nhat)}
+.t-bad{background:var(--badb);color:var(--bad)}.t-warn{background:var(--warnb);color:var(--warn)}.t-ok{background:var(--okb);color:var(--ok)}.t-run{background:var(--runb);color:var(--run)}.t-idle{background:var(--nga);color:var(--nhat)}.t-gh{background:#EEE5F8;color:#5B3A8C}
 .ring{width:56px;height:56px;flex:none;position:relative}.ring span{position:absolute;inset:0;display:grid;place-items:center;font-size:13px;font-weight:700}
 .empty{color:var(--nhat);text-align:center;padding:24px 0}
 /* tiến độ */
@@ -196,9 +196,14 @@ const S = { data: null, view: store.get('la-view') || 'tq', fil: 'Run', open: nu
 
 const meRe = () => { const n = (S.data && S.data.nguoi || '').toLowerCase(); return n.includes('tâm') ? /tâm/i : n.includes('trung') ? /trung/i : /nix/i; };
 const initials = (ai) => /tâm/i.test(ai) ? 'T' : /trung/i.test(ai) ? 'Tr' : /nix/i.test(ai) ? 'N' : '?';
+/* Quy trình 4 giai đoạn (26/11/2026): Bid → Run → Giao hàng → Done; Failed */
+const TT_LIST = ['Run', 'Giao hàng', 'Bid', 'Done', 'Failed'];
+const ttCls = (o) => o.tt === 'Run' ? 't-run' : o.tt === 'Giao hàng' ? 't-gh' : o.tt === 'Bid' ? 't-ok' : 't-idle';
+const dangLam = () => S.data.orders.filter((o) => o.tt === 'Run' || o.tt === 'Giao hàng').sort((a, b) => rank(a) - rank(b));
 function due(o) {
   const t = S.data.today;
   if (o.tt === 'Done') return ['Done', 't-idle'];
+  if (o.tt === 'Giao hàng') return [o.phaiThu > 0 ? 'Đã giao · còn thu ' + tr(o.phaiThu) : 'Đã giao · chờ duyệt Done', 't-gh'];
   if (o.tt === 'Failed') return ['Failed', 't-idle'];
   if (o.tt === 'Bid') return ['Báo giá ' + tr(o.dt), 't-ok'];
   if (o.tre) return ['Trễ ' + (o.treNgay || 1) + ' ngày', 't-bad'];
@@ -220,19 +225,19 @@ function card(o) {
 }
 
 function vTongQuan() {
-  const c = { Run: 0, Bid: 0, Done: 0, Failed: 0 }; S.data.orders.forEach((o) => { c[o.tt] = (c[o.tt] || 0) + 1; });
+  const c = { Run: 0, 'Giao hàng': 0, Bid: 0, Done: 0, Failed: 0 }; S.data.orders.forEach((o) => { c[o.tt] = (c[o.tt] || 0) + 1; });
   const ls = ordersBy(S.fil);
-  return `<div class="chips" role="group" aria-label="Lọc trạng thái">${['Run', 'Bid', 'Done', 'Failed'].map((k) => `<button class="chip" data-fil="${k}" aria-pressed="${S.fil === k}">${k} · ${c[k] || 0}</button>`).join('')}</div>
-  <div class="row"><h2>${S.fil === 'Run' ? 'Đơn đang chạy' : S.fil === 'Bid' ? 'Đơn đang báo giá' : S.fil === 'Done' ? 'Đơn đã xong' : 'Đơn không thành'}</h2><span class="mut">${S.fil === 'Run' ? 'Trễ và gần hạn lên đầu' : ''}</span></div>
+  return `<div class="chips" role="group" aria-label="Lọc trạng thái">${TT_LIST.map((k) => `<button class="chip" data-fil="${k}" aria-pressed="${S.fil === k}">${k} · ${c[k] || 0}</button>`).join('')}</div>
+  <div class="row"><h2>${S.fil === 'Run' ? 'Đơn đang chạy' : S.fil === 'Giao hàng' ? 'Đơn đã giao, chờ thu và duyệt Done' : S.fil === 'Bid' ? 'Đơn đang báo giá' : S.fil === 'Done' ? 'Đơn đã xong' : 'Đơn không thành'}</h2><span class="mut">${S.fil === 'Run' ? 'Trễ và gần hạn lên đầu' : ''}</span></div>
   ${ls.length ? ls.map(card).join('') : '<div class="empty">Không có đơn nào.</div>'}`;
 }
 
 function vTienDo() {
-  const run = ordersBy('Run');
+  const run = dangLam();
   const n = STEP.map((_, i) => run.filter((o) => o.cur && o.cur.so === i + 1));
   const mx = Math.max(1, ...n.map((a) => a.length));
   const cols = n.map((a, i) => a.length ? `<div class="col"><h3><span>${i + 1}. ${STEP[i]}</span><span class="tag">${a.length}</span></h3>${a.map((o) => { const [dl, dc] = due(o); return `<button class="kc" data-open="${esc(o.ma)}" style="border-top-color:${o.tre ? '#B3261E' : dc === 't-warn' ? '#B08A4E' : '#2F7A4B'}">${thumb(o, '', 'width:100%;height:72px;border-radius:8px')}<b>${esc(o.ma)}</b><span class="kf"><span class="tag ${dc}">${esc(dl)}</span><span class="av" title="${esc(o.cur.ai)}">${initials(o.cur.ai)}</span></span></button>`; }).join('')}</div>` : '').join('');
-  return `<div class="card"><div class="mut" style="font-weight:600;margin-bottom:8px">Số đơn Run đang ở mỗi bước</div>
+  return `<div class="card"><div class="mut" style="font-weight:600;margin-bottom:8px">Số đơn Run, Giao hàng ở mỗi bước</div>
   <div class="bars">${n.map((a) => `<div class="bar"><b>${a.length || ''}</b><i style="height:${Math.round(a.length / mx * 60)}px;${a.length ? '' : 'background:#E6DCCD;height:2px'}"></i></div>`).join('')}</div>
   <div class="bl">${SHORT.map((s) => `<span>${s}</span>`).join('')}</div></div>
   <div class="row"><h2>Đơn theo bước</h2><span class="mut">Vuốt ngang · chữ tròn là người giữ việc</span></div>
@@ -242,15 +247,15 @@ function vTienDo() {
 function vLich() {
   const t = S.data.today, start = addD(t, -14), SPAN = 35;
   const pc = (iso) => (Math.max(0, Math.min(SPAN, days(iso, start))) / SPAN * 100).toFixed(1) + '%';
-  const run = ordersBy('Run').filter((o) => o.han && !o.giaoXong);
+  const run = dangLam().filter((o) => o.han && !o.giaoXong);
   const ticks = [0, 7, 14, 21, 28].map((d) => `<span style="left:${(d / SPAN * 100).toFixed(1)}%">${dm(addD(start, d))}</span>`).join('');
   const rows = run.map((o) => {
     const s = o.nhan && o.nhan > start ? o.nhan : start, late = o.tre || (!o.giaoXong && o.han < t), soon = !late && days(o.han, t) <= 5;
     const w = Math.max(2, (Math.min(SPAN, days(o.han, start)) - days(s, start)) / SPAN * 100);
     return `<button class="gr" data-open="${esc(o.ma)}"><span class="lab">${thumb(o, 's28')}<b>${esc(o.ma)}</b><small style="color:${late ? '#B3261E' : soon ? '#8A5A00' : '#6B625A'}">${late ? due(o)[0] : 'Hạn ' + dm(o.han)}</small></span><span class="gt"><span class="gb" style="left:${pc(s)};width:${w.toFixed(1)}%;${late ? 'border-color:#B3261E;background:#FBE4E1' : soon ? 'border-color:#B08A4E' : ''}"><i style="width:${o.pct}%;${late ? 'background:#B3261E' : ''}"></i></span></span></button>`;
   }).join('');
-  const noHan = ordersBy('Run').filter((o) => !o.han);
-  const wk = ordersBy('Run').filter((o) => o.han && !o.giaoXong && days(o.han, t) <= 7).sort((a, b) => a.han < b.han ? -1 : 1);
+  const noHan = dangLam().filter((o) => !o.han);
+  const wk = dangLam().filter((o) => o.han && !o.giaoXong && days(o.han, t) <= 7).sort((a, b) => a.han < b.han ? -1 : 1);
   return `<div class="card"><div class="gh"><span class="lab"></span><div class="gx">${ticks}</div></div>
   <div class="gw">${rows || '<div class="empty">Chưa có đơn có hạn giao.</div>'}<span class="today" style="left:calc(144px + (100% - 144px) * ${(14 / SPAN).toFixed(3)})"></span></div>
   <div class="mut" style="margin-top:8px">Thanh từ ngày nhận đơn tới hạn giao, phần tô son là số bước đã xong. Vạch đen là hôm nay ${dm(t)}.</div></div>
@@ -261,7 +266,7 @@ function vLich() {
 function vThuChi() {
   const T = S.data.tong || {}, t = S.data.today;
   const thu = S.data.orders.filter((o) => o.tt !== 'Failed' && o.phaiThu > 0).sort((a, b) => (a.hanThu || '9') < (b.hanThu || '9') ? -1 : 1);
-  const chi = S.data.orders.filter((o) => o.tt === 'Run' && o.conChi > 0).sort((a, b) => (a.han || '9') < (b.han || '9') ? -1 : 1);
+  const chi = S.data.orders.filter((o) => (o.tt === 'Run' || o.tt === 'Giao hàng') && o.conChi > 0).sort((a, b) => (a.han || '9') < (b.han || '9') ? -1 : 1);
   const mt = Math.max(1, ...thu.map((o) => o.phaiThu)), mc = Math.max(1, T.chiCoDinh || 0, ...chi.map((o) => o.conChi));
   const ln = (o, amt, chip, cls, m, col) => `<button class="ln" data-open="${esc(o.ma)}"><span class="lt"><span>${thumb(o, 's28')}${esc(o.ma)}</span><span class="lr"><b>${tr(amt)}</b><span class="tag ${cls}">${esc(chip)}</span></span></span><span class="trk"><i style="width:${Math.max(3, Math.round(amt / m * 100))}%;background:${col}"></i></span></button>`;
   return `<div class="hero"><span class="sub">Số dư theo sổ</span><b>${vnd(T.soDu)}</b><div class="t3"><div><span>Phải thu</span><b>${tr(T.phaiThu)}</b></div><div><span>Phải chi</span><b>${tr(T.phaiChi)}</b></div><div><span>Còn lại sau cùng</span><b>${tr(T.conLai)}</b></div></div></div>
@@ -281,7 +286,7 @@ function vChiTiet(o) {
   const doc = (lab, y) => `<div class="doc ${y ? 'y' : ''}"><em>${y ? '✓' : '—'}</em><b>${lab}</b><small style="color:${y ? '#2F7A4B' : '#B3261E'}">${y ? 'Có' : 'Chưa'}</small></div>`;
   return `<div class="sh"><button class="back" data-close aria-label="Quay lại"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>${thumb(o, 's44')}<div style="display:flex;flex-direction:column;min-width:0"><span class="ser" style="font-size:19px;font-weight:700">${esc(o.ma)}</span><span class="sub">${esc(o.sp)} · ${esc(o.kh)}</span></div></div>
   <main style="padding-bottom:40px">
-  <div class="tags" style="margin-bottom:10px"><span class="tag ${o.tt === 'Run' ? 't-run' : o.tt === 'Bid' ? 't-ok' : 't-idle'}">${esc(o.tt)}</span><span class="tag ${dc}">${esc(dl)}</span>${o.cur && o.tt === 'Run' ? `<span class="tag">Chờ ${esc(o.cur.ai)}</span>` : ''}${o.canhBao && o.canhBao !== 'OK' ? `<span class="tag t-bad">${esc(o.canhBao)}</span>` : ''}</div>
+  <div class="tags" style="margin-bottom:10px"><span class="tag ${ttCls(o)}">${esc(o.tt)}</span><span class="tag ${dc}">${esc(dl)}</span>${o.cur && o.tt === 'Run' ? `<span class="tag">Chờ ${esc(o.cur.ai)}</span>` : ''}${o.canhBao && o.canhBao !== 'OK' ? `<span class="tag t-bad">${esc(o.canhBao)}</span>` : ''}</div>
   ${o.steps.length ? `<div class="card"><div class="mut" style="font-weight:600;margin-bottom:10px">Sơ đồ ${o.steps.length} bước · xong ${o.daXong}/${o.steps.length}</div><div class="metro">${metro}</div></div>` : '<div class="card mut">Đơn chưa có tiến độ trong tab Tiến độ của sổ.</div>'}
   <div class="card"><div class="mut" style="font-weight:600">Tiền của đơn</div>${bar('Đã thu', o.daThu, o.dt, '#2F7A4B')}${bar('Đã chi', o.daChi, o.dtkp, '#8E2A1E')}<div class="mut" style="margin-top:8px">Doanh thu dự kiến ${vnd(o.dt)} · DTKP ${vnd(o.dtkp)} · còn phải thu ${vnd(o.phaiThu)}</div></div>
   <div class="docs" style="margin-bottom:10px">${doc('Chốt đơn', o.hoSo.chot)}${doc('File DTKP', o.hoSo.dtkp)}${doc('Lệnh SX', o.hoSo.lsx)}${doc('Phiếu thu / HĐ', o.hoSo.phieu)}</div>
@@ -315,13 +320,13 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
 const nd = (x) => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'd').toLowerCase();
 function hayOf(o) {
-  return nd([o.ma, o.kh, o.sp, o.tt, o.ghiChu, o.canhBao, o.nhan, o.hanText, o.cur && o.cur.ten, o.cur && o.cur.ai, o.cur && o.tt === 'Run' ? 'cho ' + o.cur.ai : '', o.tre ? 'tre cham qua han' : '', o.tt === 'Run' ? 'dang chay' : '', o.tt === 'Bid' ? 'bao gia cho chot' : '', o.tt === 'Done' ? 'xong hoan tat' : '', o.tt === 'Failed' ? 'truot huy' : '', (o.steps || []).map((s) => s.ai).join(' '), o.phaiThu > 0 ? 'con no phai thu' : ''].join(' '));
+  return nd([o.ma, o.kh, o.sp, o.tt, o.ghiChu, o.canhBao, o.nhan, o.hanText, o.cur && o.cur.ten, o.cur && o.cur.ai, o.cur && o.tt === 'Run' ? 'cho ' + o.cur.ai : '', o.tre ? 'tre cham qua han' : '', o.tt === 'Run' ? 'dang chay' : '', o.tt === 'Bid' ? 'bao gia cho chot' : '', o.tt === 'Giao hàng' ? 'giao hang da giao cho thu cho duyet done' : '', o.tt === 'Done' ? 'xong hoan tat' : '', o.tt === 'Failed' ? 'truot huy' : '', (o.steps || []).map((s) => s.ai).join(' '), o.phaiThu > 0 ? 'con no phai thu' : ''].join(' '));
 }
 function hl(text, words) { const t = String(text || ''), n = nd(t), on = new Array(t.length).fill(false); if (n.length === t.length) words.forEach((w) => { let j = 0; while (w && (j = n.indexOf(w, j)) >= 0) { for (let k = j; k < j + w.length; k++) on[k] = true; j += w.length; } }); let out = '', open = false; for (let i = 0; i < t.length; i++) { if (on[i] !== open) { out += on[i] ? '<mark>' : '</mark>'; open = on[i]; } out += esc(t[i]); } return out + (open ? '</mark>' : ''); }
 function vTim() {
   const q = nd($('#sq').value).trim(), words = q.split(/\s+/).filter(Boolean), os = (S.data && S.data.orders) || [];
   $('#sclr').hidden = !q;
-  const ord = { Run: 0, Bid: 1, Done: 2, Failed: 3 };
+  const ord = { Run: 0, 'Giao hàng': 1, Bid: 2, Done: 3, Failed: 4 };
   if (!words.length) {
     const quick = ['trễ', 'chờ anh Tâm', 'chờ Nix', 'còn nợ', 'báo giá chờ chốt'];
     $('#sres').innerHTML = (SQ.recent.length ? `<div class="sh3">Tìm gần đây</div><div class="schips">${SQ.recent.map((r) => `<button data-sq="${esc(r)}">${esc(r)}</button>`).join('')}</div>` : '') +
@@ -333,7 +338,7 @@ function vTim() {
       const m = nd(o.ma), sc = words.reduce((s, w) => s + (m.startsWith(w) ? 5 : m.includes(w) ? 3 : nd(o.kh).includes(w) ? 2 : 1), 0); return { o, sc }; })
     .filter(Boolean).sort((a, b) => b.sc - a.sc || (ord[a.o.tt] ?? 9) - (ord[b.o.tt] ?? 9));
   $('#sres').innerHTML = res.length ? `<div class="sh3">${res.length} đơn</div>` + res.map(({ o }) => { const [dl, dc] = due(o);
-    return `<button class="sr" data-sopen="${esc(o.ma)}">${thumb(o)}<span style="min-width:0;flex:1"><b>${hl(o.ma, words)}</b><small>${hl(o.kh + ' · ' + o.sp, words)}</small><span class="tags"><span class="tag ${o.tt === 'Run' ? 't-run' : o.tt === 'Bid' ? 't-ok' : 't-idle'}">${esc(o.tt)}</span>${o.tt === 'Run' ? `<span class="tag ${dc}">${esc(dl)}</span>` : ''}${o.cur && o.tt === 'Run' ? `<span class="tag">Chờ ${esc(o.cur.ai)}</span>` : ''}</span></span></button>`; }).join('')
+    return `<button class="sr" data-sopen="${esc(o.ma)}">${thumb(o)}<span style="min-width:0;flex:1"><b>${hl(o.ma, words)}</b><small>${hl(o.kh + ' · ' + o.sp, words)}</small><span class="tags"><span class="tag ${ttCls(o)}">${esc(o.tt)}</span>${o.tt === 'Run' ? `<span class="tag ${dc}">${esc(dl)}</span>` : ''}${o.cur && o.tt === 'Run' ? `<span class="tag">Chờ ${esc(o.cur.ai)}</span>` : ''}</span></span></button>`; }).join('')
     : `<div class="mut" style="margin-top:20px;text-align:center">Không thấy đơn nào có “${esc($('#sq').value)}”.<br>Thử gõ ngắn hơn, ví dụ chỉ tên khách.</div>`;
 }
 function moTim(q) { if (!S.data) return; $('#sov').hidden = false; const i = $('#sq'); if (q != null) i.value = q; vTim(); setTimeout(() => i.focus(), 30); }
