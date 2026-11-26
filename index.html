@@ -356,7 +356,7 @@ document.addEventListener('click', (e) => {
   }
   const id = v.dataset.fview || v.dataset.fopen, w = v.dataset.fopen ? window.open('', '_blank') : null;
   v.disabled = true;
-  api({ action: 'tai', id }).then((r) => { v.disabled = false; if (w) w.location = r.url; else openLb(r.url); })
+  api({ action: 'tai', id }).then((r) => { v.disabled = false; if (!r || !r.url) throw new Error('Chưa lấy được link file, anh thử lại.'); if (w) w.location.href = r.url; else if (v.dataset.fopen) location.href = r.url; else openLb(r.url); })
     .catch((x) => { v.disabled = false; if (w) w.close(); alert(x.message); });
 }, true);
 function loadAv() { api({ action: 'av' }).then((av) => { if (S.data && av && Object.keys(av).length) { S.data.av = Object.assign({}, S.data.av || {}, av); S.avOd = av; render(); } }).catch(() => {}); }
