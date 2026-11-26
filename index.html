@@ -113,6 +113,28 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 .err{background:var(--badb);color:var(--bad);border-radius:10px;padding:8px 10px;font-size:13.5px;font-weight:600}
 .load{padding:40px 0;text-align:center;color:var(--nhat)}
 @media (prefers-reduced-motion:no-preference){.ord,.kc,.chip{transition:background-color .15s}}
+/* Hồ sơ OneDrive */
+#hoso .hh{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+#hoso .hh b{font-size:15px}
+.upb{display:inline-flex;align-items:center;gap:6px;background:var(--son);color:var(--kem);border:0;border-radius:10px;padding:9px 14px;font-weight:600;cursor:pointer;font-size:14px}
+.upb input{display:none}
+.subsel{width:100%;margin:6px 0 10px;padding:9px 10px;border:1px solid var(--ke);border-radius:10px;background:#fff;font-size:14px}
+.fl{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--ke)}
+.fl:first-of-type{border-top:0}
+.fi{width:44px;height:44px;border-radius:8px;background:var(--nga);display:grid;place-items:center;overflow:hidden;font-size:10px;font-weight:700;color:var(--son)}
+.fi img{width:100%;height:100%;object-fit:cover}
+.fl b{display:block;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fl small{display:block;font-size:11.5px;color:var(--nhat);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fa{display:flex;gap:6px}
+.fa button{border:1px solid var(--ke);background:#fff;border-radius:9px;padding:7px 10px;font-size:13px;font-weight:600;color:var(--son);cursor:pointer}
+.fa .fx{color:var(--bad)}
+.upr{background:var(--kem);border-radius:10px;padding:8px 10px;margin-bottom:8px;font-size:13px}
+.upr .trk{height:8px;margin-top:5px}
+.upr.er{background:var(--badb);color:var(--bad)}
+.grp{font-size:11.5px;font-weight:700;color:var(--nhat);text-transform:uppercase;letter-spacing:.04em;margin:12px 0 2px}
+.lbx{position:fixed;inset:0;z-index:80;background:rgba(20,16,14,.92);display:grid;place-items:center;padding:20px}
+.lbx img{max-width:100%;max-height:80vh;border-radius:10px;background:#fff}
+.lbx button{position:absolute;top:calc(14px + env(safe-area-inset-top));right:14px;width:42px;height:42px;border-radius:21px;border:0;background:var(--kem);font-size:18px}
 </style>
 </head>
 <body>
@@ -243,6 +265,7 @@ function vChiTiet(o) {
   ${o.steps.length ? `<div class="card"><div class="mut" style="font-weight:600;margin-bottom:10px">Sơ đồ ${o.steps.length} bước · xong ${o.daXong}/${o.steps.length}</div><div class="metro">${metro}</div></div>` : '<div class="card mut">Đơn chưa có tiến độ trong tab Tiến độ của sổ.</div>'}
   <div class="card"><div class="mut" style="font-weight:600">Tiền của đơn</div>${bar('Đã thu', o.daThu, o.dt, '#2F7A4B')}${bar('Đã chi', o.daChi, o.dtkp, '#8E2A1E')}<div class="mut" style="margin-top:8px">Doanh thu dự kiến ${vnd(o.dt)} · DTKP ${vnd(o.dtkp)} · còn phải thu ${vnd(o.phaiThu)}</div></div>
   <div class="docs" style="margin-bottom:10px">${doc('Chốt đơn', o.hoSo.chot)}${doc('File DTKP', o.hoSo.dtkp)}${doc('Lệnh SX', o.hoSo.lsx)}${doc('Phiếu thu / HĐ', o.hoSo.phieu)}</div>
+  <div class="card" id="hoso">${vHoSo(o)}</div>
   ${sl ? `<div class="card"><div class="mut" style="font-weight:600">Các bước</div>${sl}</div>` : ''}
   ${o.ghiChu ? `<div class="card"><details><summary>Ghi chú trong sổ</summary><p>${esc(o.ghiChu)}</p></details></div>` : ''}
   </main>`;
@@ -267,9 +290,79 @@ function render() {
 }
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
+function api(body) {
+  return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ code: S.code }, body)) })
+    .then((r) => r.json()).then((j) => { if (!j.ok) throw new Error(j.error); return j.data; });
+}
+/* ---------- Hồ sơ đơn: file thật trong OneDrive › Đơn hàng B2B › khách › mã đơn ---------- */
+const HS = { ma: null, d: null, err: '', busy: false, up: [], sub: '' };
+const isNix = () => S.data && S.data.nguoi === 'Nix';
+const kb = (n) => n >= 1e6 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+const ext = (t) => (String(t).split('.').pop() || '').slice(0, 4).toUpperCase();
+function hsLoad(ma, quiet) {
+  if (!quiet) { HS.ma = ma; HS.d = null; HS.err = ''; }
+  HS.busy = true; paintHS();
+  api({ action: 'ds', ma }).then((d) => { if (HS.ma !== ma) return; HS.d = d; HS.busy = false; HS.err = ''; paintHS(); })
+    .catch((e) => { if (HS.ma !== ma) return; HS.busy = false; HS.err = e.message; paintHS(); });
+}
+function vHoSo(o) {
+  if (HS.ma !== o.ma) setTimeout(() => hsLoad(o.ma), 0);
+  const d = HS.ma === o.ma ? HS.d : null;
+  const subs = d ? d.thuMucCon : [];
+  const head = `<div class="hh"><b>Hồ sơ trên OneDrive</b><label class="upb">＋ Gửi file<input type="file" id="hs-file" multiple></label></div>
+    ${subs.length ? `<select class="subsel" id="hs-sub" aria-label="Gửi vào thư mục"><option value="">Gửi vào: thư mục đơn</option>${subs.map((x) => `<option ${HS.sub === x ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select>` : ''}`;
+  const ups = HS.up.filter((u) => u.ma === o.ma).map((u) => `<div class="upr ${u.err ? 'er' : ''}"><b>${esc(u.ten)}</b> · ${u.err ? esc(u.err) : u.done ? 'đã lưu vào OneDrive ✓' : `đang gửi ${u.pct}% (${kb(u.sent)} / ${kb(u.size)})`}${u.err || u.done ? '' : `<div class="trk"><i style="width:${u.pct}%;background:var(--son)"></i></div>`}</div>`).join('');
+  if (HS.err) return head + ups + `<div class="err">${esc(HS.err)}</div>`;
+  if (!d) return head + ups + '<div class="mut">Đang mở thư mục OneDrive…</div>';
+  if (!d.files.length) return head + ups + `<div class="mut">${d.thuMuc ? 'Thư mục ' + esc(d.thuMuc) + ' chưa có file.' : 'Đơn này chưa có thư mục trên OneDrive. Gửi file đầu tiên là app tự tạo thư mục.'}</div>`;
+  const by = {}; d.files.forEach((f) => (by[f.thu] = by[f.thu] || []).push(f));
+  const row = (f) => `<div class="fl"><span class="fi">${f.anh ? `<img src="${esc(f.anh)}" alt="" loading="lazy">` : esc(ext(f.ten))}</span><span><b>${esc(f.ten)}</b><small>${kb(f.size)} · ${new Date(f.sua).toLocaleDateString('vi-VN')}${f.ai ? ' · ' + esc(f.ai) : ''}</small></span><span class="fa">${/^image\//.test(f.loai) ? `<button data-fview="${esc(f.id)}">Xem</button>` : `<button data-fopen="${esc(f.id)}">Mở</button>`}${isNix() ? `<button class="fx" data-fdel="${esc(f.id)}" data-fn="${esc(f.ten)}" aria-label="Xóa ${esc(f.ten)}">✕</button>` : ''}</span></div>`;
+  return head + ups + `<div class="mut" style="margin-bottom:4px">${esc(d.thuMuc)} · ${d.files.length} file${HS.busy ? ' · đang làm mới…' : ''}</div>` +
+    Object.keys(by).sort().map((k) => (k ? `<div class="grp">${esc(k)}</div>` : '') + by[k].map(row).join('')).join('');
+}
+function paintHS() { const el = document.getElementById('hoso'); const o = S.open && S.data && S.data.orders.find((x) => x.ma === S.open); if (el && o) el.innerHTML = vHoSo(o); }
+const CHUNK = 327680 * 16; // 5 MB, bội số 320 KB theo yêu cầu OneDrive
+async function guiFile(ma, file, sub) {
+  const u = { ma, ten: file.name, size: file.size, sent: 0, pct: 0 }; HS.up.push(u); paintHS();
+  try {
+    const s = await api({ action: 'gui', ma, ten: file.name, thuMucCon: sub });
+    for (let i = 0; i < file.size || (i === 0 && file.size === 0); i += CHUNK) {
+      const end = Math.min(file.size, i + CHUNK), part = file.slice(i, end);
+      let tries = 0;
+      for (;;) {
+        try {
+          const r = await fetch(s.uploadUrl, { method: 'PUT', headers: { 'Content-Range': `bytes ${i}-${end - 1}/${file.size}` }, body: part });
+          if (r.status >= 400) throw new Error('OneDrive báo lỗi ' + r.status);
+          break;
+        } catch (e) { if (++tries >= 4) throw e; await new Promise((ok) => setTimeout(ok, 1500 * tries)); }
+      }
+      u.sent = end; u.pct = Math.round(end / file.size * 100); paintHS();
+      if (file.size === 0) break;
+    }
+    u.done = true; paintHS(); hsLoad(ma, true);
+  } catch (e) { u.err = 'Gửi chưa được: ' + e.message; paintHS(); }
+}
+function openLb(src) { const d = document.createElement('div'); d.className = 'lbx'; d.innerHTML = `<button aria-label="Đóng">✕</button><img alt="">`; d.querySelector('img').src = src; d.addEventListener('click', () => d.remove()); document.body.appendChild(d); }
+document.addEventListener('change', (e) => {
+  if (e.target.id === 'hs-sub') { HS.sub = e.target.value; return; }
+  if (e.target.id === 'hs-file' && S.open) { const sub = (document.getElementById('hs-sub') || {}).value || ''; [...e.target.files].forEach((f) => guiFile(S.open, f, sub)); e.target.value = ''; }
+});
+document.addEventListener('click', (e) => {
+  const v = e.target.closest('[data-fview],[data-fopen],[data-fdel]'); if (!v) return;
+  e.stopPropagation();
+  if (v.dataset.fdel) {
+    if (!confirm('Xóa "' + v.dataset.fn + '"? File vào Thùng rác OneDrive, khôi phục được trong 30 ngày.')) return;
+    api({ action: 'xoa', id: v.dataset.fdel }).then(() => hsLoad(S.open, true)).catch((x) => alert(x.message)); return;
+  }
+  const id = v.dataset.fview || v.dataset.fopen, w = v.dataset.fopen ? window.open('', '_blank') : null;
+  v.disabled = true;
+  api({ action: 'tai', id }).then((r) => { v.disabled = false; if (w) w.location = r.url; else openLb(r.url); })
+    .catch((x) => { v.disabled = false; if (w) w.close(); alert(x.message); });
+}, true);
+function loadAv() { api({ action: 'av' }).then((av) => { if (S.data && av && Object.keys(av).length) { S.data.av = Object.assign({}, S.data.av || {}, av); S.avOd = av; render(); } }).catch(() => {}); }
 function load(code) {
   S.busy = true; S.err = ''; render();
-  const ok = (data) => { S.busy = false; S.data = data; S.code = code; store.set('la-code', code); render(); };
+  const ok = (data) => { S.busy = false; if (S.avOd) data.av = Object.assign({}, data.av || {}, S.avOd); const first = !S.data; S.data = data; S.code = code; store.set('la-code', code); render(); if (first && !window.__MOCK) loadAv(); };
   const fail = (e) => { S.busy = false; const m = (e && e.message) || String(e); if (/mã đăng nhập/i.test(m)) { S.data = null; store.set('la-code', null); } S.err = m; render(); };
   if (window.google && google.script && google.script.run) google.script.run.withSuccessHandler(ok).withFailureHandler(fail).layDuLieu(code);
   else if (!window.__MOCK) fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ code }) })
