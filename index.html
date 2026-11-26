@@ -168,7 +168,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 .note{background:#fff;border-radius:12px;padding:12px;font-size:14px;line-height:1.5;margin-bottom:10px}
 .hbtns{display:flex;gap:8px}.ib{position:relative}
 .ib .dot{position:absolute;top:8px;right:9px;width:9px;height:9px;border-radius:5px;background:#F2B544;border:1.5px solid var(--son)}.ib .dot[hidden]{display:none}
-.gcd{margin-top:10px}.gcd p{font-size:13.5px;line-height:1.55;margin:6px 0;color:var(--muc)}
+.t1{font-size:14.5px;font-weight:600;line-height:1.5;color:var(--muc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gcd{margin-top:6px}.gcd p{font-size:13.5px;line-height:1.55;margin:6px 0;color:var(--muc)}
 .hh2{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}.hh2 b{font-size:15px}
 .info{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .it{background:var(--kem);border-radius:12px;padding:9px 10px;display:flex;gap:8px;align-items:flex-start;min-width:0}
@@ -365,27 +365,10 @@ function rutGon(o) {
   return r;
 }
 function vTT(o) {
-  const r = rutGon(o), it = (k, lab, val, cls, chips) => `<div class="it ${cls || ''}">${icT(k)}<div><small>${lab}</small>${val ? `<b>${val}</b>` : ''}${chips && chips.length ? `<div class="chs">${chips.join('')}</div>` : ''}</div></div>`;
-  const ch = (s, c) => `<span class="${c || ''}">${esc(s)}</span>`;
-  const thu = !(o.dt > 0) ? null : o.daThu > 0 && !(o.phaiThu > 0) ? ch('✓ Đã thu đủ', 'ok') : o.daThu > 0 ? ch('Đã thu ' + tr(o.daThu) + ' · còn ' + tr(o.phaiThu), 'wn') : o.tt === 'Bid' ? ch('Chưa chốt') : ch('Chưa thu', 'wn');
-  const half = [
-    ['sl', 'Số lượng', r.sl ? esc(r.sl) : 'Chưa rõ', r.sl ? '' : 'mi'],
-    ['tien', 'Giá trị', o.dt > 0 ? esc(vnd(o.dt)) : 'Chưa có giá', o.dt > 0 ? '' : 'mi', thu ? [thu] : []],
-    ['tg', 'Thời gian', `Nhận ${esc(dm(o.nhan))}<br>${o.han ? 'Giao ' + esc(dm(o.han)) : o.hanText ? esc(o.hanText) : '<span style="color:var(--nhat);font-weight:500">Chưa có hạn giao</span>'}`, ''],
-    r.kho && ['kho', 'Khổ', esc(r.kho), ''],
-    r.cl.length && ['cl', 'Chất liệu', esc(r.cl.join(' · ')), ''],
-    r.hd.length && r.hd.join('').length <= 22 && ['hd', 'PO / hợp đồng', esc(r.hd.join(' · ')), '']
-  ].filter(Boolean);
-  if (half.length % 2) half[half.length - 1][3] += ' w';
-  const tiles = half.map((x) => it(...x)).concat([
-    r.gc.length ? it('gc', 'Gia công', '', 'w', r.gc.map((x) => ch(x))) : '',
-    r.tt ? it('tt', 'Thanh toán', esc(r.tt), 'w') : '',
-    r.giao ? it('giao', 'Nơi giao', esc(r.giao), 'w') : '',
-    r.hd.length && r.hd.join('').length > 22 ? it('hd', 'PO / hợp đồng', esc(r.hd.join(' · ')), 'w') : '',
-    r.thieu.length ? it('thieu', 'Còn thiếu', '', 'w bad', r.thieu.map((x) => ch(hoa(x)))) : ''
-  ]).filter(Boolean);
+  const r = rutGon(o);
+  const parts = [r.sl, r.cl[0], r.gc.slice(0, 2).join(', '), o.dt > 0 ? (o.dt >= 1e6 ? tr(o.dt) : vnd(o.dt)) : '', o.han ? 'giao ' + dm(o.han) : o.hanText].filter(Boolean);
   const note = String(o.ghiChu || '').split(/\s\|\s/).map((p) => `<p>${esc(p.trim())}</p>`).join('');
-  return `<div class="hh2"><b>Thông tin đơn</b><span class="mut">tự rút từ sổ</span></div><div class="info">${tiles.join('')}</div>${o.ghiChu ? `<details class="gcd"><summary>Xem ghi chú đầy đủ</summary>${note}</details>` : ''}`;
+  return `<div class="t1">${parts.length ? parts.map(esc).join(' · ') : '<span class="mut">Chưa có thông tin quy cách trong sổ</span>'}</div>${o.ghiChu ? `<details class="gcd"><summary>Xem ghi chú đầy đủ</summary>${note}</details>` : ''}`;
 }
 /* ---------- Quy trình 4 giai đoạn (chốt 26/11/2026): Bid → Run → Giao hàng → Done ---------- */
 const GD = ['Bid', 'Run', 'Giao hàng', 'Done'];
@@ -417,11 +400,13 @@ function vQT(o) {
 document.addEventListener('toggle', (e) => { const d = e.target; if (d && d.classList && d.classList.contains('gdd')) QT[d.dataset.k] = d.open; }, true);
 function vChiTiet(o) {
   const [dl, dc] = due(o), t = S.data.today;
+  const metro = o.steps.map((s, i) => { const cls = s.tt === 'Xong' ? 'x' : s.tt === 'Trễ' ? 't' : o.cur && o.cur.so === s.so ? 'c' : ''; const nx = o.steps[i + 1]; return `<div class="mt ${cls}" style="--ln:${s.tt === 'Xong' && nx ? '#2F7A4B' : '#E6DCCD'}"><i>${s.tt === 'Xong' ? '✓' : s.so}</i><span>${SHORT[s.so - 1] || esc(s.ten)}</span></div>`; }).join('');
   const bar = (lab, a, b, col) => `<div style="margin-top:8px"><div class="lt" style="display:flex;justify-content:space-between;font-size:12.5px"><span style="font-weight:600">${lab}</span><span><b>${tr(a)}</b> / ${tr(b)}</span></div><div class="trk" style="height:12px;margin-top:3px"><i style="width:${b ? Math.min(100, Math.round(a / b * 100)) : 0}%;background:${col}"></i></div></div>`;
   return `<div class="sh"><button class="back" data-close aria-label="Quay lại"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>${thumb(o, 's44')}<div style="display:flex;flex-direction:column;min-width:0"><span class="ser" style="font-size:19px;font-weight:700">${esc(o.ma)}</span><span class="sub">${esc(o.sp)} · ${esc(o.kh)}</span></div></div>
   <main style="padding-bottom:40px">
   <div class="tags" style="margin-bottom:10px"><span class="tag ${ttCls(o)}">${esc(o.tt)}</span><span class="tag ${dc}">${esc(dl)}</span>${o.cur && o.tt === 'Run' ? `<span class="tag">Chờ ${esc(o.cur.ai)}</span>` : ''}${o.canhBao && o.canhBao !== 'OK' ? `<span class="tag t-bad">${esc(o.canhBao)}</span>` : ''}</div>
   <div class="card" id="ttdon">${vTT(o)}</div>
+  ${o.steps.length ? `<div class="card"><div class="mut" style="font-weight:600;margin-bottom:10px">Sơ đồ ${o.steps.length} bước · xong ${o.daXong}/${o.steps.length}</div><div class="metro">${metro}</div></div>` : '<div class="card mut">Đơn chưa có tiến độ trong tab Tiến độ của sổ.</div>'}
   <div class="card" id="qt">${vQT(o)}</div>
   <div class="card"><div class="mut" style="font-weight:600">Tiền của đơn</div>${bar('Đã thu', o.daThu, o.dt, '#2F7A4B')}${bar('Đã chi', o.daChi, o.dtkp, '#8E2A1E')}<div class="mut" style="margin-top:8px">Doanh thu dự kiến ${vnd(o.dt)} · DTKP ${vnd(o.dtkp)} · còn phải thu ${vnd(o.phaiThu)}</div></div>
   <div class="card" id="hoso">${vHoSo(o)}</div>
