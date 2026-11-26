@@ -357,11 +357,12 @@ const HS = { ma: null, d: null, err: '', busy: false, up: [], loai: '' };
 const isNix = () => S.data && S.data.nguoi === 'Nix';
 const kb = (n) => n >= 1e6 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
 const ext = (t) => (String(t).split('.').pop() || '').slice(0, 4).toUpperCase();
-function hsLoad(ma, quiet) {
-  if (!quiet) { HS.ma = ma; HS.d = null; HS.err = ''; }
+const hsKey = (ma) => 'la-hs:' + ma;
+function hsLoad(ma, quiet, force) {
+  if (!quiet) { HS.ma = ma; HS.err = ''; HS.d = null; try { const c = JSON.parse(store.get(hsKey(ma)) || 'null'); if (c) HS.d = c; } catch (e) {} }
   HS.busy = true; paintHS();
-  api({ action: 'ds', ma }).then((d) => { if (HS.ma !== ma) return; HS.d = d; HS.busy = false; HS.err = ''; paintHS(); })
-    .catch((e) => { if (HS.ma !== ma) return; HS.busy = false; HS.err = e.message; paintHS(); });
+  api({ action: 'ds', ma, force: !!force }).then((d) => { store.set(hsKey(ma), JSON.stringify(d)); if (HS.ma !== ma) return; HS.d = d; HS.busy = false; HS.err = ''; paintHS(); })
+    .catch((e) => { if (HS.ma !== ma) return; HS.busy = false; if (!HS.d) HS.err = e.message; paintHS(); });
 }
 /* Hồ sơ theo quy trình: chỉ hiện file đúng 8 loại; file khác (tham khảo, file khách gửi, ảnh màn hình...) ẩn */
 const LOAI = [
@@ -418,7 +419,7 @@ async function guiFile(ma, file, sub, tenMoi) {
       u.sent = end; u.pct = Math.round(end / file.size * 100); paintHS();
       if (file.size === 0) break;
     }
-    u.done = true; paintHS(); hsLoad(ma, true);
+    u.done = true; paintHS(); hsLoad(ma, true, true);
   } catch (e) { u.err = 'Gửi chưa được: ' + e.message; paintHS(); }
 }
 function openLb(src) { const d = document.createElement('div'); d.className = 'lbx'; d.innerHTML = `<button aria-label="Đóng">✕</button><img alt="">`; d.querySelector('img').src = src; d.addEventListener('click', () => d.remove()); document.body.appendChild(d); }
@@ -438,9 +439,12 @@ document.addEventListener('click', (e) => {
   e.stopPropagation();
   if (v.dataset.fdel) {
     if (!confirm('Xóa "' + v.dataset.fn + '"? File vào Thùng rác OneDrive, khôi phục được trong 30 ngày.')) return;
-    api({ action: 'xoa', id: v.dataset.fdel }).then(() => hsLoad(S.open, true)).catch((x) => alert(x.message)); return;
+    api({ action: 'xoa', id: v.dataset.fdel }).then(() => hsLoad(S.open, true, true)).catch((x) => alert(x.message)); return;
   }
-  const id = v.dataset.fview || v.dataset.fopen, w = v.dataset.fopen ? window.open('', '_blank') : null;
+  const id = v.dataset.fview || v.dataset.fopen, f = HS.d && HS.d.files.find((x) => x.id === id);
+  /* Có link tải sẵn còn hạn (dưới 45 phút) thì mở ngay, không phải chờ máy chủ */
+  if (f && f.url && HS.d.luc && Date.now() - HS.d.luc < 45 * 60000) { if (v.dataset.fopen) window.open(f.url, '_blank') || (location.href = f.url); else openLb(f.url); return; }
+  const w = v.dataset.fopen ? window.open('', '_blank') : null;
   v.disabled = true;
   api({ action: 'tai', id }).then((r) => { v.disabled = false; if (!r || !r.url) throw new Error('Chưa lấy được link file, anh thử lại.'); if (w) w.location.href = r.url; else if (v.dataset.fopen) location.href = r.url; else openLb(r.url); })
     .catch((x) => { v.disabled = false; if (w) w.close(); alert(x.message); });
