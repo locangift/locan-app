@@ -400,7 +400,9 @@ function vHoSo(o) {
   const L = locHoSo(d.files);
   if (!L.length) return head + ups + `<div class="mut">${d.thuMuc ? 'Chưa có hồ sơ theo quy trình trong thư mục ' + esc(d.thuMuc) + '.' : 'Đơn này chưa có thư mục trên OneDrive. Gửi file đầu tiên là app tự tạo thư mục.'}</div>`;
   const row = (f) => `<div class="fl"><span class="fi">${f.anh ? `<img src="${esc(f.anh)}" alt="" loading="lazy">` : esc(ext(f.ten))}</span><span><b>${esc(f.ten)}</b><small>${kb(f.size)} · ${new Date(f.sua).toLocaleDateString('vi-VN')}${f.ai ? ' · ' + esc(f.ai) : ''}</small></span><span class="fa">${/^image\//.test(f.loai) ? `<button data-fview="${esc(f.id)}">Xem</button>` : `<button data-fopen="${esc(f.id)}">Mở</button>`}${isNix() ? `<button class="fx" data-fdel="${esc(f.id)}" data-fn="${esc(f.ten)}" aria-label="Xóa ${esc(f.ten)}">✕</button>` : ''}</span></div>`;
-  return head + ups + `<div class="mut" style="margin-bottom:4px">${esc(d.thuMuc)} · ${L.length} hồ sơ${HS.busy ? ' · đang làm mới…' : ''}</div>` +
+  const cu = (d.cu || []);
+  const bn = cu.length ? `<div class="upr" style="background:var(--warnb);color:var(--warn)"><b>Có ${cu.length} bản cũ đã có bản mới hơn:</b>${cu.map((x) => `<div style="font-size:12.5px;margin-top:3px">• ${esc(x.ten)}<br><span style="opacity:.8">→ mới: ${esc(x.moi)}</span></div>`).join('')}<div class="fa" style="margin-top:8px"><button data-cuxoa>Xoá bản cũ</button><button data-cugiu>Giữ lại</button></div></div>` : '';
+  return head + ups + bn + `<div class="mut" style="margin-bottom:4px">${esc(d.thuMuc)} · ${L.length} hồ sơ${HS.busy ? ' · đang làm mới…' : ''}</div>` +
     LOAI.filter((l) => L.some((f) => f.k === l[0])).map((l) => `<div class="grp">${l[1]}</div>` + L.filter((f) => f.k === l[0]).map(row).join('')).join('');
 }
 function paintHS() { const el = document.getElementById('hoso'); const o = S.open && S.data && S.data.orders.find((x) => x.ma === S.open); if (el && o) el.innerHTML = vHoSo(o); }
@@ -425,7 +427,7 @@ async function guiFile(ma, file, sub, tenMoi) {
     u.done = true; paintHS(); return true;
   } catch (e) { u.err = 'Gửi chưa được: ' + e.message; paintHS(); return false; }
 }
-/* Gửi bản mới: báo giá / DTKP / lệnh SX tự xóa bản cũ; loại khác hỏi có thay bản cũ không. Bản xóa vào Thùng rác OneDrive (30 ngày). */
+/* Gửi bản mới xong: luôn hỏi xác nhận trước khi xóa bản cũ cùng loại. Bản xóa vào Thùng rác OneDrive (30 ngày). */
 async function guiLo(ma, k, list) {
   const cu = ((HS.ma === ma && HS.d && HS.d.files) || []).filter((f) => loaiFile(f) === k);
   const ok = await Promise.all(list.map((x) => guiFile(ma, x.f, '', x.ten)));
@@ -433,7 +435,7 @@ async function guiLo(ma, k, list) {
   const moi = new Set(xong.map((x) => fold(x.ten)));
   let xoa = cu.filter((f) => !moi.has(fold(f.ten)));
   if (MOT_BAN[k] && xong.some((x) => MOT_BAN[k].test(fold(x.ten)))) { const d = new Set(xong.map((x) => duoi(x.ten))); xoa = xoa.filter((f) => MOT_BAN[k].test(fold(f.ten)) && d.has(duoi(f.ten))); }
-  else if (xoa.length && !confirm('Đây là bản mới thay cho ' + xoa.length + ' file cũ cùng loại?\n\n' + xoa.map((f) => '• ' + f.ten).join('\n') + '\n\nOK: xóa bản cũ (vào Thùng rác OneDrive)\nHủy: giữ cả hai')) xoa = [];
+  if (xoa.length && !confirm('Đây là bản mới thay cho ' + xoa.length + ' file cũ cùng loại?\n\n' + xoa.map((f) => '• ' + f.ten).join('\n') + '\n\nOK: xóa bản cũ (vào Thùng rác OneDrive)\nHủy: giữ cả hai')) xoa = [];
   if (xoa.length) { try { await api({ action: 'thay', ma, ids: xoa.map((f) => f.id) }); } catch (e) { alert('Chưa xóa được bản cũ: ' + e.message); } }
   hsLoad(ma, true, true);
 }
@@ -450,6 +452,12 @@ document.addEventListener('change', (e) => {
   }
 });
 document.addEventListener('click', (e) => {
+  const cb = e.target.closest('[data-cuxoa],[data-cugiu]');
+  if (cb && S.open && HS.d && HS.d.cu && HS.d.cu.length) {
+    const ma = S.open, ids = HS.d.cu.map((x) => x.id), xoa = cb.hasAttribute('data-cuxoa');
+    if (xoa && !confirm('Xoá ' + ids.length + ' bản cũ? File vào Thùng rác OneDrive, khôi phục được trong 30 ngày.')) return;
+    cb.disabled = true; api({ action: xoa ? 'thay' : 'giu', ma, ids }).then(() => hsLoad(ma, true, true)).catch((x) => { cb.disabled = false; alert(x.message); }); return;
+  }
   const v = e.target.closest('[data-fview],[data-fopen],[data-fdel]'); if (!v) return;
   e.stopPropagation();
   if (v.dataset.fdel) {
