@@ -84,6 +84,7 @@ td{padding:8px 4px 8px 0;border-bottom:1px solid var(--nga);vertical-align:top}t
 .trk{height:8px;border-radius:4px;background:var(--nga)}.trk i{display:block;height:100%;border-radius:4px}
 /* chi tiết */
 .sheet{position:fixed;inset:0;z-index:40;background:var(--kem);overflow-y:auto;-webkit-overflow-scrolling:touch}
+@keyframes nhay{0%,45%{box-shadow:0 0 0 3px var(--vang)}100%{box-shadow:0 0 0 0 transparent}}.nhay{animation:nhay 2.6s ease-out}
 .sh{position:sticky;top:0;z-index:2;background:var(--son);color:var(--kem);display:flex;gap:10px;align-items:center;padding:calc(10px + env(safe-area-inset-top)) 14px 10px}
 .back{width:44px;height:44px;border-radius:22px;border:0;background:var(--kem);color:var(--son);display:grid;place-items:center;cursor:pointer;flex:none}
 .metro{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));row-gap:12px}
@@ -532,17 +533,19 @@ function render() {
   const V = { tq: vTongQuan, td: vTienDo, lg: vLich, tc: vThuChi }[S.view] || vTongQuan;
   const tabs = [['tq', 'Tổng quan'], ['td', 'Tiến độ'], ['lg', 'Lịch giao'], ['tc', 'Thu chi']];
   const o = S.open && d.orders.find((x) => x.ma === S.open);
+  const cu = document.querySelector('.sheet'), cuMa = cu && cu.dataset.ma, cuTop = cu ? cu.scrollTop : 0;
   app.innerHTML = `<header><div class="hr"><div><div class="brand">LỘC ẤN</div><div class="sub">Chào ${esc(d.nguoi)} · số liệu lúc ${esc(d.docLuc || '')}</div></div><div class="hbtns"><button class="ib" data-tb aria-label="Thông báo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9a6 6 0 1 1 12 0c0 6 2.5 8 2.5 8h-17S6 15 6 9"/><path d="M10.2 20.5a2 2 0 0 0 3.6 0"/></svg><i class="dot" ${tbDaBat() || tbChuaXem() ? 'hidden' : ''}></i><b class="bdg" ${tbChuaXem() ? '' : 'hidden'}>${tbChuaXem() > 9 ? '9+' : tbChuaXem()}</b></button><button class="ib ${S.busy ? 'spin' : ''}" data-reload aria-label="Làm mới số liệu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></button></div></div>
   <button class="sbtn" data-search><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Tìm đơn hàng, khách, sản phẩm…</button>
   ${S.view === 'tq' ? `<div class="stats"><button class="st" data-fil="Run"><b>${run.length}</b><span>đơn đang chạy</span></button><button class="st ${late ? 'hot' : ''}" data-fil="Run"><b>${late}</b><span>đơn có bước trễ</span></button><button class="st" data-view="td"><b>${mine}</b><span>đơn chờ ${esc(d.nguoi)}</span></button></div>` : ''}</header>
   <main>${S.err ? `<div class="err" style="margin-bottom:10px">${esc(S.err)}</div>` : ''}${V()}</main>
   <nav class="tabs" aria-label="Mục">${tabs.map((t) => `<button class="tab" data-view="${t[0]}" ${S.view === t[0] ? 'aria-current="page"' : ''}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${svgTab[t[0]]}</svg>${t[1]}</button>`).join('')}</nav>
-  ${o ? `<div class="sheet" role="dialog" aria-label="${esc(o.ma)}">${vChiTiet(o)}</div>` : ''}`;
+  ${o ? `<div class="sheet" role="dialog" aria-label="${esc(o.ma)}" data-ma="${esc(o.ma)}">${vChiTiet(o)}</div>` : ''}`;
+  const moi = document.querySelector('.sheet'); if (moi && cuMa === o.ma) moi.scrollTop = cuTop;
   paintNoteBtn();
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.8'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.9'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
@@ -1024,15 +1027,56 @@ const tenMay = () => laIOS ? 'iPhone' : /Android/.test(navigator.userAgent) ? 'A
 let swReg = null;
 if ('serviceWorker' in navigator && window.isSecureContext && !window.__MOCK) {
   navigator.serviceWorker.register('./sw.js').then((r) => { swReg = r; }).catch(() => {});
-  navigator.serviceWorker.addEventListener('message', (e) => { if (e.data && e.data.mo) moLink(e.data.mo); if (e.data && e.data.tb) tbTai(); });
+  navigator.serviceWorker.addEventListener('message', (e) => { if (e.data && e.data.moTB) moTB(e.data.moTB); else if (e.data && e.data.mo) moLink(e.data.mo); if (e.data && e.data.tb) tbTai(); });
 }
-function moLink(url) {
-  try {
-    const q = new URL(url, location.href).searchParams, ma = q.get('don');
-    if (!S.data) return;
-    if (q.has('hop')) { dongTim(); hopLoad(false).then(() => moP('hop')); return; }
-    if (ma) { dongP(); dongTim(); S.open = ma; render(); }
-  } catch (e) {}
+function moLink(url) { moTB({ link: url }); }
+/* Bấm thông báo (hoặc 1 dòng trong chuông): mở đơn và cuộn tới đúng phần việc.
+   Loại lấy từ tag máy chủ gửi: buoc/ngay/note (có tên bước) → mở bước đó trên timeline; giao/han → bước Giao hàng;
+   file → Hồ sơ đơn hàng; tt/moi → Quy trình đơn (chứng từ còn thiếu, nút ＋); note không có bước → Ghi chú nhanh; hop → Xếp file vào đơn. */
+const MO_KEY = () => new URL('./_mo', location.href).href;
+async function layMoCho() { try { const c = await caches.open('la-tb'), r = await c.match(MO_KEY()); if (!r) return null; const m = await r.json(); c.delete(MO_KEY()); return m && Date.now() - (m.t || 0) < 180000 ? m : null; } catch (e) { return null; } }
+function buocTuChu(nd) {
+  const t = String(nd || '');
+  for (let i = STEP.length - 1; i >= 0; i--) { const n = STEP[i]; if (t.includes('bước ' + n) || t.includes(' · ' + n)) return i + 1; }
+  return 0;
+}
+function dichTB(m) {
+  if (m.g) return m.g;
+  let q; try { q = new URL(m.link || './', location.href).searchParams; } catch (e) { q = new URLSearchParams(); }
+  const ma = q.get('don') || '', loai = String(m.tag || '').split('-')[0];
+  if (q.has('hop') || loai === 'hop') return { hop: 1 };
+  if (!ma) return loai === 'han' ? { view: 'lg' } : {};
+  let so = 0;
+  if (loai === 'giao' || loai === 'han') so = 8;
+  else if (loai === 'buoc' || loai === 'ngay' || loai === 'note') so = buocTuChu(m.nd);
+  const muc = so ? 'tl' : loai === 'note' ? 'gcn' : loai === 'file' ? 'hoso' : loai === 'tt' || loai === 'moi' ? 'qt' : '';
+  return { ma, so, muc };
+}
+let MO_DA = 0;
+function moTB(m) {
+  if (!m) return;
+  if (m.t) { if (m.t === MO_DA) return; MO_DA = m.t; caches.open('la-tb').then((c) => c.delete(MO_KEY())).catch(() => {}); }
+  const g = dichTB(m);
+  if (!S.data) { S.moSau = g.ma ? g : null; return; }
+  if (g.hop) { dongP(); dongTim(); hopLoad(false).then(() => moP('hop')); return; }
+  if (g.view) { dongP(); dongTim(); S.open = null; S.view = g.view; render(); window.scrollTo(0, 0); return; }
+  if (!g.ma) return;
+  if (!S.data.orders.some((o) => o.ma === g.ma)) { S.moSau = g; toast('Đang mở đơn ' + g.ma + '…'); load(S.code, true); return; }
+  denDich(g);
+}
+function denDich(g) {
+  dongP(); dongTim();
+  S.open = g.ma; if (g.so) { BP.ma = g.ma; BP.so = g.so; }
+  S.dich = { g, luc: Date.now() };
+  render();
+  const id = g.muc || '';
+  if (!id) return;
+  requestAnimationFrame(() => {
+    const sh = document.querySelector('.sheet'), el = document.getElementById(id); if (!sh || !el) return;
+    const dau = sh.querySelector('.sh'), the = (g.so && el.querySelector('.bp')) || el;
+    sh.scrollTop = Math.max(0, the.getBoundingClientRect().top - sh.getBoundingClientRect().top + sh.scrollTop - (dau ? dau.offsetHeight : 0) - 10);
+    the.classList.remove('nhay'); void the.offsetWidth; the.classList.add('nhay');
+  });
 }
 async function layToken() {
   const reg = swReg || await navigator.serviceWorker.ready;
@@ -1091,7 +1135,7 @@ function vTB() {
     ${on ? '<button class="hgo hgo2" id="tb-tat">Tắt trên máy này</button>' : ''}
     <div class="hlab" style="margin-top:16px">App báo khi</div>
     <div class="note" style="font-size:13.5px;line-height:1.6">• Có file mới vào đơn (báo cho 2 người còn lại)<br>• Đơn chuyển giai đoạn Bid → Run → Giao hàng<br>• Đơn đã giao và thu đủ, chờ duyệt Done<br>• 8h sáng: đơn trễ hoặc còn ≤ 2 ngày tới hạn giao (anh Nix, anh Tâm)<br>• Ghi chú nhanh 📝, đơn mới 🆕, đổi hạn một khâu 📅, xác nhận khâu xong, đặt hạn giao<br><span class="mut">Thông báo chỉ ghi mã đơn, không ghi số tiền.</span></div>`;
-  const list = TBL.ds.length ? TBL.ds.map((x) => `<button class="tbi ${x.t > xem ? 'moi' : ''}" data-tbo="${esc(x.link || '')}"><b>${esc(x.td || 'Lộc Ấn')}</b>${x.nd ? `<span>${esc(x.nd)}</span>` : ''}<small>${tgian(x.t)}</small></button>`).join('')
+  const list = TBL.ds.length ? TBL.ds.map((x, i) => `<button class="tbi ${x.t > xem ? 'moi' : ''}" data-tbo="${i}"><b>${esc(x.td || 'Lộc Ấn')}</b>${x.nd ? `<span>${esc(x.nd)}</span>` : ''}<small>${tgian(x.t)}</small></button>`).join('')
     : `<div class="note mut">Chưa có thông báo nào${TBL.nguon === 'may' ? ' trên máy này' : ''}. Từ giờ thông báo gửi tới anh sẽ nằm ở đây, mới nhất ở trên.</div>`;
   $('#pres').innerHTML = (on ? '' : caiDat) + `<div class="hlab" ${on ? '' : 'style="margin-top:16px"'}>Tất cả thông báo · mới nhất ở trên</div><div class="tbl">${list}</div>` + (on ? `<details class="tbcd"><summary>Cài đặt thông báo trên máy này</summary>${caiDat}</details>` : '');
 }
@@ -1103,13 +1147,15 @@ function daTai(first) {
   const qs = new URLSearchParams(location.search), don = qs.get('don'), chia = qs.has('chia'), hop = qs.has('hop');
   if (don || chia || hop) history.replaceState(null, '', location.pathname);
   if (don) { S.open = don; render(); }
+  let cho = null; try { cho = JSON.parse(sessionStorage.getItem('la-dich') || 'null'); sessionStorage.removeItem('la-dich'); } catch (e) {}
+  if (!hop) layMoCho().then((m) => { if (m) moTB(m); else if (cho && Date.now() - cho.luc < 60000) denDich(cho.g); else if (don) moTB({ link: './?don=' + encodeURIComponent(don) }); });
   loadChia().then(() => { if (chia && HOP.loc.length) moP('hop'); });
   hopLoad(!chia && !don).then(() => { if (hop) moP('hop'); }); tbSync();
 }
 document.addEventListener('click', (e) => {
   if (e.target.closest('[data-hop]')) { HOP.err = ''; moP('hop'); return; }
   if (e.target.closest('[data-tb]')) { TB.err = ''; TB.msg = ''; TBL.xemTruoc = tbXem(); store.set('la-tb-xem', String(Date.now())); moP('tb'); paintBell(); tbTai(); return; }
-  const tbo = e.target.closest('[data-tbo]'); if (tbo) { const u = tbo.dataset.tbo; dongP(); if (u && /[?&](don|hop)\b/.test(u)) moLink(u); return; }
+  const tbo = e.target.closest('[data-tbo]'); if (tbo) { const x = TBL.ds[+tbo.dataset.tbo]; dongP(); if (x) moTB({ link: x.link, tag: x.tag, nd: x.nd }); return; }
   if (e.target.closest('#pclose')) { dongP(); return; }
   if (e.target.closest('#hgo')) { xepHop(); return; }
   if (e.target.closest('#tb-bat')) { batTB(); return; }
@@ -1126,7 +1172,7 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#pov
 function loadAv() { api({ action: 'av' }).then((av) => { if (S.data && av && Object.keys(av).length) { S.data.av = Object.assign({}, S.data.av || {}, av); S.avOd = av; render(); } }).catch(() => {}); }
 function load(code, force) {
   S.busy = true; S.err = ''; render();
-  const ok = (data) => { S.busy = false; if (force) toast('Đã cập nhật số liệu lúc ' + (data.docLuc || '').slice(0, 5)); if (S.avOd) data.av = Object.assign({}, data.av || {}, S.avOd); const first = !S.data; S.data = data; S.code = code; store.set('la-code', code); render(); if (S.moSau && data.orders.some((o) => o.ma === S.moSau)) { S.open = S.moSau; S.moSau = null; render(); } if (first && !window.__MOCK) loadAv(); daTai(first); };
+  const ok = (data) => { S.busy = false; if (force) toast('Đã cập nhật số liệu lúc ' + (data.docLuc || '').slice(0, 5)); if (S.avOd) data.av = Object.assign({}, data.av || {}, S.avOd); const first = !S.data; S.data = data; S.code = code; store.set('la-code', code); render(); if (S.moSau) { const g = typeof S.moSau === 'string' ? { ma: S.moSau } : S.moSau; if (data.orders.some((o) => o.ma === g.ma)) { S.moSau = null; denDich(g); } else if (force) { S.moSau = null; toast('Chưa thấy đơn ' + g.ma + ' trong sổ'); } } if (first && !window.__MOCK) loadAv(); daTai(first); };
   const fail = (e) => { S.busy = false; const m = (e && e.message) || String(e); if (/mã đăng nhập/i.test(m)) { S.data = null; store.set('la-code', null); } S.err = m; render(); };
   if (window.google && google.script && google.script.run) google.script.run.withSuccessHandler(ok).withFailureHandler(fail).layDuLieu(code);
   else if (!window.__MOCK) fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ code, force: !!force }) })
@@ -1147,7 +1193,7 @@ document.addEventListener('click', (e) => {
 });
 document.addEventListener('submit', (e) => { e.preventDefault(); if (e.target.id === 'f-login') { const c = ($('#code').value || '').trim(); if (c) load(c); } });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.open) { S.open = null; render(); } });
-document.addEventListener('visibilitychange', () => { if (document.visibilityState !== 'visible' || !S.data || !S.code) return; if (PICK.luc && Date.now() - PICK.luc < 120000) return; if (Date.now() - (S.kiemLuc || 0) > 600000) kiemBanMoi(); load(S.code); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState !== 'visible' || !S.data || !S.code) return; if (PICK.luc && Date.now() - PICK.luc < 120000) return; if (Date.now() - (S.kiemLuc || 0) > 600000) kiemBanMoi(); load(S.code); layMoCho().then((m) => { if (m) moTB(m); }); });
 /* Nút làm mới: nạp bản app mới nếu có, lấy số liệu mới nhất (bỏ qua bộ nhớ 60 giây của máy chủ), làm mới hồ sơ đơn đang mở và hộp thư đến */
 async function lamMoiTatCa() {
   if (S.busy) return;
@@ -1160,7 +1206,7 @@ async function kiemBanMoi() {
   S.kiemLuc = Date.now();
   try {
     const t = await fetch('./?v=' + Date.now(), { cache: 'no-store' }).then((r) => r.text()), m = t.match(/const APP_VER = '([^']+)'/);
-    if (m && m[1] !== APP_VER) { toast('Có bản app mới, đang cập nhật…'); setTimeout(() => location.reload(), 400); return true; }
+    if (m && m[1] !== APP_VER) { toast('Có bản app mới, đang cập nhật…'); setTimeout(() => { try { if (S.open) sessionStorage.setItem('la-dich', JSON.stringify({ luc: Date.now(), g: S.dich && S.dich.g.ma === S.open ? S.dich.g : { ma: S.open, so: BP.ma === S.open ? BP.so : 0, muc: '' } })); } catch (e) {} location.reload(); }, 400); return true; }
   } catch (e) {}
   return false;
 }

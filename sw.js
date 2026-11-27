@@ -37,7 +37,7 @@ self.addEventListener('push', (e) => {
   e.waitUntil(Promise.all([
     self.registration.showNotification(d.title || 'Lộc Ấn', {
       body: d.body || '', icon: SCOPE + 'icon-192.png', badge: SCOPE + 'icon-192.png',
-      tag: d.tag || undefined, renotify: !!d.tag, data: { link: d.link || '' }
+      tag: d.tag || undefined, renotify: !!d.tag, data: { link: d.link || '', tag: d.tag || '', nd: d.body || '' }
     }),
     luuTB(d)
   ]));
@@ -54,13 +54,16 @@ async function luuTB(d) {
   } catch (x) {}
 }
 
+/* Bấm thông báo: ghi "đích" vào bộ nhớ máy (app đọc khi mở lại, phòng iPhone làm rơi tin nhắn lúc app đang ngủ), rồi đưa app lên và báo mở đúng phần của đơn */
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();
-  const url = new URL((e.notification.data && e.notification.data.link) || '', SCOPE).href;
+  const dt = e.notification.data || {}, url = new URL(dt.link || '', SCOPE).href;
+  const mo = { link: url, tag: dt.tag || '', nd: dt.nd || '', t: Date.now() };
   e.waitUntil((async () => {
+    try { const c = await caches.open('la-tb'); await c.put(SCOPE + '_mo', new Response(JSON.stringify(mo), { headers: { 'content-type': 'application/json' } })); } catch (x) {}
     const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const c of all) {
-      if (c.url.startsWith(SCOPE)) { try { await c.focus(); } catch (x) {} c.postMessage({ mo: url }); return; }
+      if (c.url.startsWith(SCOPE)) { try { await c.focus(); } catch (x) {} c.postMessage({ mo: url, moTB: mo }); return; }
     }
     await self.clients.openWindow(url);
   })());
