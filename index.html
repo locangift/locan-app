@@ -203,6 +203,9 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 .hgs{flex:none;min-height:40px;border:0;border-radius:10px;background:var(--son);color:var(--kem);font-weight:700;padding:0 14px;cursor:pointer}.hgs:disabled{opacity:.6}
 .nhg{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--ke)}.nhg:first-of-type{border-top:0}.nhg .hgf{margin:0;flex:1.3}
 .nhm{flex:1;text-align:left;background:none;border:0;padding:0;font:inherit;font-size:13.5px;font-weight:600;color:var(--muc);cursor:pointer;min-width:0}.nhm small{display:block;font-weight:400;color:var(--nhat);font-size:12px}
+.ib.spin svg{animation:xoay .8s linear infinite}@keyframes xoay{to{transform:rotate(360deg)}}
+#toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translate(-50%,-20px);opacity:0;pointer-events:none;background:var(--muc);color:var(--kem);padding:10px 16px;border-radius:999px;font-size:14px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.25);transition:opacity .2s,transform .2s;z-index:120;white-space:nowrap}
+#toast.show{opacity:1;transform:translate(-50%,0)}
 </style>
 </head>
 <body>
@@ -488,7 +491,7 @@ function render() {
   const V = { tq: vTongQuan, td: vTienDo, lg: vLich, tc: vThuChi }[S.view] || vTongQuan;
   const tabs = [['tq', 'Tổng quan'], ['td', 'Tiến độ'], ['lg', 'Lịch giao'], ['tc', 'Thu chi']];
   const o = S.open && d.orders.find((x) => x.ma === S.open);
-  app.innerHTML = `<header><div class="hr"><div><div class="brand">LỘC ẤN</div><div class="sub">Chào ${esc(d.nguoi)} · số liệu lúc ${esc(d.docLuc || '')}</div></div><div class="hbtns"><button class="ib" data-tb aria-label="Thông báo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9a6 6 0 1 1 12 0c0 6 2.5 8 2.5 8h-17S6 15 6 9"/><path d="M10.2 20.5a2 2 0 0 0 3.6 0"/></svg><i class="dot" ${tbDaBat() ? 'hidden' : ''}></i></button><button class="ib" data-reload aria-label="Làm mới số liệu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></button></div></div>
+  app.innerHTML = `<header><div class="hr"><div><div class="brand">LỘC ẤN</div><div class="sub">Chào ${esc(d.nguoi)} · số liệu lúc ${esc(d.docLuc || '')}</div></div><div class="hbtns"><button class="ib" data-tb aria-label="Thông báo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9a6 6 0 1 1 12 0c0 6 2.5 8 2.5 8h-17S6 15 6 9"/><path d="M10.2 20.5a2 2 0 0 0 3.6 0"/></svg><i class="dot" ${tbDaBat() ? 'hidden' : ''}></i></button><button class="ib ${S.busy ? 'spin' : ''}" data-reload aria-label="Làm mới số liệu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></button></div></div>
   <button class="sbtn" data-search><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Tìm đơn hàng, khách, sản phẩm…</button>
   ${S.view === 'tq' ? `<div class="stats"><button class="st" data-fil="Run"><b>${run.length}</b><span>đơn đang chạy</span></button><button class="st ${late ? 'hot' : ''}" data-fil="Run"><b>${late}</b><span>đơn có bước trễ</span></button><button class="st" data-view="td"><b>${mine}</b><span>đơn chờ ${esc(d.nguoi)}</span></button></div>` : ''}</header>
   <main>${S.err ? `<div class="err" style="margin-bottom:10px">${esc(S.err)}</div>` : ''}${V()}</main>
@@ -496,6 +499,7 @@ function render() {
   ${o ? `<div class="sheet" role="dialog" aria-label="${esc(o.ma)}">${vChiTiet(o)}</div>` : ''}`;
 }
 
+const APP_VER = '2026-11-27.2'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
@@ -874,12 +878,12 @@ document.addEventListener('change', (e) => {
 document.addEventListener('input', (e) => { if (e.target.id === 'hq') { HOP.q = e.target.value; const s = $('#hdon'); if (s) s.innerHTML = donOpts(); } });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#pov').hidden) dongP(); });
 function loadAv() { api({ action: 'av' }).then((av) => { if (S.data && av && Object.keys(av).length) { S.data.av = Object.assign({}, S.data.av || {}, av); S.avOd = av; render(); } }).catch(() => {}); }
-function load(code) {
+function load(code, force) {
   S.busy = true; S.err = ''; render();
-  const ok = (data) => { S.busy = false; if (S.avOd) data.av = Object.assign({}, data.av || {}, S.avOd); const first = !S.data; S.data = data; S.code = code; store.set('la-code', code); render(); if (first && !window.__MOCK) loadAv(); daTai(first); };
+  const ok = (data) => { S.busy = false; if (force) toast('Đã cập nhật số liệu lúc ' + (data.docLuc || '').slice(0, 5)); if (S.avOd) data.av = Object.assign({}, data.av || {}, S.avOd); const first = !S.data; S.data = data; S.code = code; store.set('la-code', code); render(); if (first && !window.__MOCK) loadAv(); daTai(first); };
   const fail = (e) => { S.busy = false; const m = (e && e.message) || String(e); if (/mã đăng nhập/i.test(m)) { S.data = null; store.set('la-code', null); } S.err = m; render(); };
   if (window.google && google.script && google.script.run) google.script.run.withSuccessHandler(ok).withFailureHandler(fail).layDuLieu(code);
-  else if (!window.__MOCK) fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ code }) })
+  else if (!window.__MOCK) fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ code, force: !!force }) })
     .then((r) => r.json()).then((j) => (j.ok ? ok(j.data) : fail(new Error(j.error)))).catch(() => fail(new Error('Không kết nối được máy chủ. Kiểm tra mạng rồi bấm làm mới.')));
   else if (window.__MOCK) setTimeout(() => (code === 'test' ? ok(window.__MOCK) : fail(new Error('Mã đăng nhập không đúng.'))), 50);
   else fail(new Error('Không kết nối được máy chủ.'));
@@ -892,12 +896,32 @@ document.addEventListener('click', (e) => {
   else if (t.hasAttribute('data-close')) { S.open = null; }
   else if (t.dataset.view) { S.view = t.dataset.view; S.open = null; store.set('la-view', S.view); window.scrollTo(0, 0); }
   else if (t.dataset.fil) { S.fil = t.dataset.fil; S.view = 'tq'; }
-  else if (t.hasAttribute('data-reload')) { load(S.code); return; }
+  else if (t.hasAttribute('data-reload')) { lamMoiTatCa(); return; }
   render();
 });
 document.addEventListener('submit', (e) => { e.preventDefault(); if (e.target.id === 'f-login') { const c = ($('#code').value || '').trim(); if (c) load(c); } });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.open) { S.open = null; render(); } });
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.data && S.code) load(S.code); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState !== 'visible' || !S.data || !S.code) return; if (Date.now() - (S.kiemLuc || 0) > 600000) kiemBanMoi(); load(S.code); });
+/* Nút làm mới: nạp bản app mới nếu có, lấy số liệu mới nhất (bỏ qua bộ nhớ 60 giây của máy chủ), làm mới hồ sơ đơn đang mở và hộp thư đến */
+async function lamMoiTatCa() {
+  if (S.busy) return;
+  if (await kiemBanMoi()) return;
+  load(S.code, true);
+  if (S.open) hsLoad(S.open, true, true);
+  hopLoad(false);
+}
+async function kiemBanMoi() {
+  S.kiemLuc = Date.now();
+  try {
+    const t = await fetch('./?v=' + Date.now(), { cache: 'no-store' }).then((r) => r.text()), m = t.match(/const APP_VER = '([^']+)'/);
+    if (m && m[1] !== APP_VER) { toast('Có bản app mới, đang cập nhật…'); setTimeout(() => location.reload(), 400); return true; }
+  } catch (e) {}
+  return false;
+}
+function toast(msg) {
+  let el = document.getElementById('toast'); if (!el) { el = document.createElement('div'); el.id = 'toast'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+  el.textContent = msg; el.className = 'show'; clearTimeout(toast.t); toast.t = setTimeout(() => { el.className = ''; }, 2200);
+}
 if (S.code) load(S.code); else render();
 }
 </script>

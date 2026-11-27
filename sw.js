@@ -11,6 +11,11 @@ self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 
 self.addEventListener('fetch', (e) => {
   const u = new URL(e.request.url);
+  /* Mở app / tải lại: luôn lấy giao diện mới nhất từ mạng (bỏ qua bộ nhớ 10 phút của GitHub Pages) */
+  if (e.request.mode === 'navigate' && e.request.method === 'GET' && u.origin === self.location.origin) {
+    e.respondWith(fetch(e.request.url, { cache: 'no-store', credentials: 'same-origin' }).catch(() => fetch(e.request)));
+    return;
+  }
   if (e.request.method !== 'POST' || !u.pathname.endsWith('/chia-se')) return;
   e.respondWith((async () => {
     try {
