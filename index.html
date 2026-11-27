@@ -560,7 +560,7 @@ function render() {
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.10'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.12'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
@@ -670,7 +670,14 @@ const CHUNK = 327680 * 16; // 5 MB, bội số 320 KB theo yêu cầu OneDrive
 async function guiFile(ma, file, sub, tenMoi, k) {
   const u = { ma, k: k || '', ten: tenMoi || file.name, size: file.size, sent: 0, pct: 0 }; HS.up.push(u); paintHS();
   try {
-    const s = await api({ action: 'gui', ma, ten: tenMoi || file.name, thuMucCon: sub });
+    let s;
+    try { s = await api({ action: 'gui', ma, ten: tenMoi || file.name, thuMucCon: sub }); }
+    catch (e) {
+      /* 27/11: OneDrive từ chối mở phiên tải lên của lệnh 'gui' (lỗi 400 invalidRequest), trong khi đường Hộp thư đến (phím tắt) vẫn chạy.
+         Tạm đi đường vòng: gửi file vào Hộp thư đến rồi xếp ngay vào đơn. Máy chủ sửa xong thì đường chính chạy lại, không vào đây nữa. */
+      if (!sub && /lỗi 400/.test(e.message) && file.size <= 25 * 1048576) { const id = await guiQuaHop(ma, file, tenMoi || file.name, u); u.done = true; paintHS(); return { xep: true, id }; }
+      throw e;
+    }
     for (let i = 0; i < file.size || (i === 0 && file.size === 0); i += CHUNK) {
       const end = Math.min(file.size, i + CHUNK), part = file.slice(i, end);
       let tries = 0;
@@ -688,12 +695,30 @@ async function guiFile(ma, file, sub, tenMoi, k) {
     u.done = true; paintHS(); return u.id || true;
   } catch (e) { u.err = 'Gửi chưa được: ' + e.message; paintHS(); return false; }
 }
+const docB64 = (f) => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).replace(/^data:[^,]*,/, '')); r.onerror = () => no(r.error || new Error('Không đọc được file trên máy.')); r.readAsDataURL(f); });
+async function guiQuaHop(ma, file, ten, u) {
+  u.pct = 5; paintHS();
+  const b64 = await docB64(file); u.pct = 30; paintHS();
+  const goc = String(file.name || 'file').replace(/[\\\/:*?"<>|#%]/g, '-'), dot = goc.lastIndexOf('.');
+  const txt = (await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ code: S.code, action: 'hop', ten: goc, duoi: dot > 0 ? goc.slice(dot + 1) : '', b64 }) }).then((r) => r.text())).trim();
+  if (!/^✅/.test(txt)) throw new Error(txt.replace(/^❌\s*Chưa gửi được:\s*/, '') || 'Máy chủ không trả lời.');
+  const tenHop = (txt.match(/"(.+)" vào Hộp thư/) || [, goc])[1];
+  u.pct = 70; paintHS();
+  const ds = await api({ action: 'hopds' }), f = (ds || []).find((x) => x.ten === tenHop);
+  if (!f) throw new Error('File đã vào Hộp thư đến nhưng chưa xếp được vào đơn: anh bấm "📥 file chờ xếp vào đơn" để xếp tay.');
+  const d = await api({ action: 'xep', id: f.id, ma, ten });
+  if (d) { store.set(hsKey(ma), JSON.stringify(d)); if (HS.ma === ma) HS.d = d; }
+  HOP.ds = HOP.ds.filter((x) => x.id !== f.id); paintHopBtn();
+  u.sent = file.size; u.pct = 100;
+  return f.id;
+}
 /* Gửi bản mới xong: luôn hỏi xác nhận trước khi xóa bản cũ cùng loại. Bản xóa vào Thùng rác OneDrive (30 ngày). */
 async function guiLo(ma, k, list) {
   const cu = ((HS.ma === ma && HS.d && HS.d.files) || []).filter((f) => loaiFile(f) === k);
   const ok = await Promise.all(list.map((x) => guiFile(ma, x.f, '', x.ten, k)));
   const xong = list.filter((x, i) => ok[i]); if (!xong.length) { hsLoad(ma, true, true); return ok; }
-  api({ action: 'xong', ma, ids: ok.filter((x) => typeof x === 'string'), ten: xong.map((x) => x.ten) }).catch(() => {});
+  const baoXong = list.filter((x, i) => ok[i] && !ok[i].xep);
+  if (baoXong.length) api({ action: 'xong', ma, ids: ok.filter((x) => typeof x === 'string'), ten: baoXong.map((x) => x.ten) }).catch(() => {});
   if (k === 'fsx') setTimeout(() => hoiDuFileSX(ma), 400);
   const moi = new Set(xong.map((x) => fold(x.ten)));
   let xoa = cu.filter((f) => !moi.has(fold(f.ten)));
@@ -751,7 +776,7 @@ document.addEventListener('click', (e) => {
     .catch((x) => { v.disabled = false; if (w) w.close(); alert(x.message); });
 }, true);
 /* ---------- Hộp thư đến: file gửi từ phím tắt iPhone (nằm tạm trên OneDrive) hoặc chia sẻ trên Android (nằm tạm trong máy) ---------- */
-const HOP = { ds: [], loc: [], ma: store.get('la-don-cuoi') || '', q: '', loai: {}, busy: false, err: '' };
+const HOP = { ds: [], loc: [], ma: '', q: '', loai: {}, don: {}, tu: {}, cuoi: '', busy: false, err: '' }; /* don: đơn của từng file (mỗi file có thể vào 1 đơn khác nhau) */
 const POV = { mode: '' };
 const loaiDoan = (ten) => { const t = fold('/' + ten); if (BO.test(t)) return ''; const l = LOAI.find((x) => x[2].test(t)); return l ? l[0] : ''; };
 /* Tên file khi lưu vào đơn: <mã đơn> - <loại> - <tên gốc>; giữ tên gốc để không ghi đè file cùng loại */
@@ -809,50 +834,65 @@ function donOpts() {
 }
 function moP(mode) { POV.mode = mode; $('#pov').hidden = false; paintHopBtn(); if (mode === 'hop') vHop(); else if (mode === 'note') vNote(); else vTB(); }
 function dongP() { if (POV.mode === 'tb') store.set('la-tb-xem', String(Date.now())); POV.mode = ''; $('#pov').hidden = true; paintHopBtn(); paintBell(); }
+const doanDonFile = (ten) => { const c = doanDon(ntext(ten)); return c.length && (c.length === 1 || c[0].sc - c[1].sc >= 2) ? c[0].o.ma : ''; };
+const hopMa = (x) => { const m = HOP.don[x.key]; return m && S.data.orders.some((o) => o.ma === m) ? m : ''; };
 function vHop() {
   const L = hopItems();
   $('#pov-t').textContent = 'Xếp file vào đơn';
   if (!L.length) { $('#pres').innerHTML = `<div class="note">Không còn file nào chờ xếp.</div>${HOP.err ? `<div class="err">${esc(HOP.err)}</div>` : ''}`; return; }
-  L.forEach((x) => { if (HOP.loai[x.key] == null) HOP.loai[x.key] = loaiDoan(x.ten); });
-  $('#pres').innerHTML = `<div class="hlab">1. Đơn hàng</div>
-    ${vChonDon('hop')}
-    <div class="hlab">2. Loại hồ sơ của từng file</div>
-    ${L.map((x) => `<div class="hi"><span class="fi">${x.anh ? `<img src="${esc(x.anh)}" alt="">` : esc(ext(x.ten))}</span><span class="hm"><b>${esc(x.ten)}</b><small>${kb(x.size)} · ${x.od ? 'gửi từ phím tắt iPhone' : 'chia sẻ trên máy này'}</small>
-      <select data-hloai="${esc(x.key)}" aria-label="Loại hồ sơ"><option value="">— Chọn loại —</option>${optLoai(HOP.loai[x.key])}</select></span>
+  L.forEach((x) => {
+    if (HOP.loai[x.key] == null) HOP.loai[x.key] = loaiDoan(x.ten);
+    if (HOP.don[x.key] == null) { HOP.don[x.key] = doanDonFile(x.ten); HOP.tu[x.key] = !!HOP.don[x.key]; }
+  });
+  const trong = L.filter((x) => !hopMa(x)), cuoi = HOP.cuoi && S.data.orders.some((o) => o.ma === HOP.cuoi) ? HOP.cuoi : '';
+  const nDon = new Set(L.map(hopMa).filter(Boolean)).size;
+  $('#pres').innerHTML = `<div class="mut" style="margin-bottom:10px;font-size:13px;line-height:1.5">Mỗi file chọn <b>đơn hàng</b> và <b>loại hồ sơ</b> riêng: các file có thể vào các đơn khác nhau.</div>
+    ${cuoi && trong.length && L.length > 1 ? `<button class="hgo hgo2" data-hcung style="margin:0 0 10px">Dùng đơn ${esc(cuoi)} cho ${trong.length} file còn trống</button>` : ''}
+    ${L.map((x, i) => `<div class="hi"><span class="fi">${x.anh ? `<img src="${esc(x.anh)}" alt="">` : esc(ext(x.ten))}</span><span class="hm"><b>${esc(x.ten)}</b><small>${kb(x.size)} · ${x.od ? 'gửi từ phím tắt iPhone' : 'chia sẻ trên máy này'}</small>
+      <span class="hlab" style="display:block;margin:10px 0 4px">Đơn hàng${HOP.tu[x.key] && hopMa(x) ? '<span class="nai">app tự chọn</span>' : ''}</span>${vChonDon('h' + i)}
+      <select data-hloai="${esc(x.key)}" aria-label="Loại hồ sơ" style="margin-top:0"><option value="">— Chọn loại hồ sơ —</option>${optLoai(HOP.loai[x.key])}</select></span>
       <button class="hx" data-hbo="${esc(x.key)}" aria-label="Bỏ file ${esc(x.ten)}">✕</button></div>`).join('')}
     ${HOP.err ? `<div class="err">${esc(HOP.err)}</div>` : ''}
-    <button class="hgo" id="hgo" ${HOP.busy ? 'disabled' : ''}>${HOP.busy ? 'Đang xếp…' : 'Xếp ' + L.length + ' file vào đơn'}</button>
-    <div class="mut" style="margin-top:10px;font-size:12.5px;line-height:1.5">File được đặt tên theo mã đơn và loại hồ sơ, lưu vào thư mục đơn trên OneDrive. Có bản cũ cùng loại thì app hỏi anh trước khi xoá.</div>`;
+    <button class="hgo" id="hgo" ${HOP.busy ? 'disabled' : ''}>${HOP.busy ? 'Đang xếp…' : 'Xếp ' + L.length + ' file' + (nDon > 1 ? ' vào ' + nDon + ' đơn' : ' vào đơn')}</button>
+    <div class="mut" style="margin-top:10px;font-size:12.5px;line-height:1.5">File được đặt tên theo mã đơn và loại hồ sơ, lưu vào thư mục từng đơn trên OneDrive. Có bản cũ cùng loại thì app hỏi anh trước khi xoá.</div>`;
 }
 function hsChon(ma) { if (HS.ma === ma) return; HS.ma = ma; HS.loai = ''; HS.err = ''; HS.d = null; try { HS.d = JSON.parse(store.get(hsKey(ma)) || 'null'); } catch (e) {} }
 async function xepHop() {
-  const L = hopItems(), ma = S.data.orders.some((o) => o.ma === HOP.ma) ? HOP.ma : '';
-  if (!ma) { HOP.err = 'Anh gõ tìm và bấm chọn đơn hàng trước.'; vHop(); return; }
+  const L = hopItems();
+  const chua = L.filter((x) => !hopMa(x));
+  if (chua.length) { HOP.err = 'Anh chọn đơn hàng cho: ' + chua.map((x) => x.ten).join(', '); vHop(); return; }
   const thieu = L.filter((x) => !HOP.loai[x.key]);
   if (thieu.length) { HOP.err = 'Chọn loại hồ sơ cho: ' + thieu.map((x) => x.ten).join(', '); vHop(); return; }
-  HOP.err = ''; HOP.busy = true; HOP.ma = ma; store.set('la-don-cuoi', ma); vHop();
-  hsChon(ma);
-  const loi = [], od = L.filter((y) => y.od), loc = L.filter((y) => y.loc);
+  HOP.err = ''; HOP.busy = true; vHop();
+  const cacDon = [...new Set(L.map(hopMa))], mot = cacDon.length === 1 ? cacDon[0] : '';
+  if (mot) { hsChon(mot); store.set('la-don-cuoi', mot); }
+  const loi = [], od = L.filter((y) => y.od), loc = L.filter((y) => y.loc), fsx = new Set();
   let daXep = 0;
   for (const x of od) {
+    const ma = hopMa(x), k = HOP.loai[x.key];
     try {
-      const ds = await api({ action: 'xep', id: x.od.id, ma, ten: tenHS(ma, HOP.loai[x.key], x.ten) });
-      HOP.ds = HOP.ds.filter((f) => f.id !== x.od.id); x.loaiDaXep = HOP.loai[x.key]; delete HOP.loai[x.key]; daXep++;
-      if (ds) { store.set(hsKey(ma), JSON.stringify(ds)); HS.d = ds; }
-    } catch (e) { loi.push(x.ten + ': ' + e.message); }
+      const ds = await api({ action: 'xep', id: x.od.id, ma, ten: tenHS(ma, k, x.ten) });
+      HOP.ds = HOP.ds.filter((f) => f.id !== x.od.id); delete HOP.loai[x.key]; delete HOP.don[x.key]; daXep++;
+      if (k === 'fsx') fsx.add(ma);
+      if (ds) { store.set(hsKey(ma), JSON.stringify(ds)); if (HS.ma === ma) HS.d = ds; }
+    } catch (e) { loi.push(x.ten + ' → ' + ma + ': ' + e.message); }
   }
-  HOP.busy = false; dongP(); S.open = ma; render();
-  if (loc.length) {
+  HOP.busy = false; dongP();
+  if (mot) { S.open = mot; render(); } else { render(); if (daXep) toast('Đã xếp ' + daXep + ' file vào ' + cacDon.length + ' đơn ✓'); }
+  for (const ma of cacDon) {
+    const nhom = loc.filter((x) => hopMa(x) === ma); if (!nhom.length) continue;
+    hsChon(ma);
     try { const d = await api({ action: 'ds', ma }); store.set(hsKey(ma), JSON.stringify(d)); if (HS.ma === ma) { HS.d = d; paintHS(); } } catch (e) {}
     const byK = {};
-    loc.forEach((x) => { const k = HOP.loai[x.key]; (byK[k] = byK[k] || []).push({ f: x.loc.file, ten: tenHS(ma, k, x.ten), key: x.key }); });
+    nhom.forEach((x) => { const k = HOP.loai[x.key]; (byK[k] = byK[k] || []).push({ f: x.loc.file, ten: tenHS(ma, k, x.ten), key: x.key }); });
     for (const k of Object.keys(byK)) {
       const ok = await guiLo(ma, k, byK[k]);
-      for (let i = 0; i < byK[k].length; i++) if (ok && ok[i]) { await boChia(byK[k][i].key); delete HOP.loai[byK[k][i].key]; }
+      for (let i = 0; i < byK[k].length; i++) if (ok && ok[i]) { await boChia(byK[k][i].key); delete HOP.loai[byK[k][i].key]; delete HOP.don[byK[k][i].key]; }
     }
-  } else if (!daXep) hsLoad(ma, true);
+  }
+  if (mot && !loc.length && !daXep) hsLoad(mot, true);
   if (loi.length) alert('Chưa xếp được:\n' + loi.join('\n'));
-  if (daXep && od.some((x) => HOP.loai[x.key] === 'fsx' || x.loaiDaXep === 'fsx')) setTimeout(() => hoiDuFileSX(ma), 400);
+  for (const ma of fsx) await new Promise((ok) => setTimeout(() => { hoiDuFileSX(ma); ok(); }, 400));
   paintHopBtn();
 }
 async function boHop(key) {
@@ -939,7 +979,8 @@ function donTim(q) {
   const L = S.data.orders.filter((o) => o.tt !== 'Failed' && (!t.length || t.every((w) => fold([o.ma, o.kh, o.sp].join(' ')).includes(w))));
   return ['Run', 'Giao hàng', 'Bid', 'Done'].flatMap((tt) => { const l = L.filter((o) => o.tt === tt); return tt === 'Bid' ? moiTruoc(l) : l; });
 }
-const cdChon = (key) => key === 'note' ? NOTE.ma : HOP.ma;
+const hopKey = (key) => { const x = /^h\d+$/.test(key) && hopItems()[+key.slice(1)]; return x ? x.key : ''; };
+const cdChon = (key) => key === 'note' ? NOTE.ma : HOP.don[hopKey(key)] || '';
 const cdTen = (key) => { const v = cdChon(key); return v === 'MOI' ? '➕ Đơn mới / khách mới' : v === 'CHUNG' ? 'Việc chung (không thuộc đơn nào)' : v && S.data.orders.some((o) => o.ma === v) ? v : ''; };
 function vChonDon(key) {
   return `<div class="cd" data-cd="${key}"><div class="cdi"><span aria-hidden="true">🔍</span><input id="cd-${key}" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" placeholder="Gõ mã đơn, tên khách, sản phẩm…" value="${esc(cdTen(key))}" aria-label="Tìm và chọn đơn hàng"><button type="button" class="cdo" data-cdo="${key}" aria-label="Xem tất cả đơn">▾</button></div><div class="cdl" id="cdl-${key}" hidden></div></div>`;
@@ -962,8 +1003,9 @@ function chonCD(key, v) {
     else if (!NOTE.tuSo) { NOTE.so = 0; doanNote(); }
     else { const o = S.data.orders.find((x) => x.ma === v); if (!o || !(o.steps || []).some((x) => x.so === NOTE.so)) NOTE.so = 0; }
     paintNS();
-  } else { HOP.ma = v; HOP.err = ''; vHop(); }
+  } else { const k = hopKey(key); if (k) { HOP.don[k] = v; HOP.tu[k] = false; HOP.cuoi = v; } HOP.err = ''; vHop(); }
 }
+document.addEventListener('click', (e) => { if (!e.target.closest('[data-hcung]') || !HOP.cuoi) return; hopItems().forEach((x) => { if (!hopMa(x)) { HOP.don[x.key] = HOP.cuoi; HOP.tu[x.key] = false; } }); HOP.err = ''; vHop(); });
 document.addEventListener('focusin', (e) => { const i = e.target.closest('.cd input'); if (!i) return; const k = i.closest('.cd').dataset.cd; dongCD(k); i.select(); veCD(k, ''); setTimeout(() => i.closest('.cd').scrollIntoView({ block: 'start', behavior: 'smooth' }), 300); });
 document.addEventListener('input', (e) => { const i = e.target.closest('.cd input'); if (i) veCD(i.closest('.cd').dataset.cd, i.value); });
 document.addEventListener('keydown', (e) => { const i = e.target.closest('.cd input'); if (!i || e.key !== 'Enter') return; e.preventDefault(); const k = i.closest('.cd').dataset.cd, b = document.querySelector('#cdl-' + k + ' button:not(.cdx)') || document.querySelector('#cdl-' + k + ' button'); if (b) b.click(); });
