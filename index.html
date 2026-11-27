@@ -157,6 +157,14 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 /* Hộp thư đến + thông báo */
 .hopb{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));z-index:40;border:0;border-radius:999px;background:var(--muc);color:var(--kem);padding:12px 18px;font-size:14.5px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.28);cursor:pointer;white-space:nowrap}
 .hopb[hidden]{display:none}
+.ntb{position:fixed;right:14px;bottom:calc(92px + env(safe-area-inset-bottom));z-index:41;border:0;border-radius:999px;background:var(--son);color:var(--kem);padding:11px 16px;font-size:14.5px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.28);display:flex;gap:6px;align-items:center;cursor:pointer}
+.ntb.up{bottom:calc(152px + env(safe-area-inset-bottom))}.ntb[hidden]{display:none}
+.nta{width:100%;box-sizing:border-box;border:1px solid var(--ke);border-radius:12px;padding:12px;font:inherit;font-size:16px;line-height:1.45;min-height:96px;resize:vertical;background:#fff;color:var(--muc);margin-bottom:6px}
+.nai{font-weight:600;font-size:11px;color:var(--ok);background:var(--okb);border-radius:6px;padding:1px 6px;margin-left:6px;text-transform:none;letter-spacing:0}
+.schips button.on{background:var(--son);border-color:var(--son);color:var(--kem)}
+.nr{padding:9px 0;border-top:1px solid var(--nga)}.nr:first-of-type{border-top:0}.nrh{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--nhat)}.nrh b{color:var(--muc)}
+.nrb{font-size:14.5px;margin-top:3px;white-space:pre-wrap;word-break:break-word}.nrm{border:0;background:none;color:var(--son);font-weight:700;padding:0;font-size:12.5px;cursor:pointer;text-decoration:underline}
+.nadd{border:1px solid var(--son);color:var(--son);background:#fff;border-radius:999px;padding:6px 12px;font-weight:700;font-size:13px;cursor:pointer}
 .hi{display:flex;gap:10px;align-items:flex-start;background:#fff;border-radius:12px;padding:10px;margin-bottom:8px}
 .hi .fi{flex:none}.hi .fi img{width:100%;height:100%;object-fit:cover}
 .hi .hm{flex:1;min-width:0}.hi .hm b{display:block;font-size:14px;word-break:break-word}.hi .hm small{color:var(--nhat);font-size:12px}
@@ -436,6 +444,7 @@ function vTL(o) {
   const bp = s ? `<div class="bp"><div class="bph"><b>${s.so}. ${esc(STEP[s.so - 1] || s.ten)}</b>${tag(s.tt)}</div>
     <div class="bpq">Xong khi: ${esc(QDB[s.so - 1] || '')}</div>
     <div class="mut">${esc(s.ai || '')}${s.tt === 'Xong' ? ' · xong ' + dm(s.xong) : s.hx ? ' · hạn ' + dm(s.hx) : ' · chưa có hạn'}${s.viec ? ' · ' + esc(s.viec) : ''}</div>
+    ${noteBuoc(o, s.so)}
     ${s.so === 8 ? hgForm(o, (String(s.viec || '').match(/^Giao lúc (\d{1,2}:\d{2})/) || [])[1] || '') : ''}
     ${s.so >= 10 ? '<div class="mut" style="margin-top:6px">Bước này tự chuyển khi đơn Done.</div>' : s.tt === 'Xong' ? `<button class="bpb2" data-bxn="0">Bỏ xác nhận</button>` : `<button class="hgo" data-bxn="1" style="margin-top:8px">✓ Xác nhận đã xong</button>`}</div>` : '<div class="mut" style="margin-top:8px">Bấm vào từng bước để xem khi nào xong và xác nhận.</div>';
   return `<div class="mut" style="font-weight:600;margin-bottom:10px">Sơ đồ ${o.steps.length} bước · xong ${o.daXong}/${o.steps.length}</div><div class="metro">${metro}</div>${bp}`;
@@ -474,6 +483,7 @@ function vChiTiet(o) {
   <div class="tags" style="margin-bottom:10px"><span class="tag ${ttCls(o)}">${esc(o.tt)}</span><span class="tag ${dc}">${esc(dl)}</span>${o.cur && o.tt === 'Run' ? `<span class="tag">Chờ ${esc(o.cur.ai)}</span>` : ''}${o.canhBao && o.canhBao !== 'OK' ? `<span class="tag t-bad">${esc(o.canhBao)}</span>` : ''}</div>
   <div class="card" id="ttdon">${vTT(o)}</div>
   <div class="card" id="tl">${vTL(o)}</div>
+  <div class="card" id="gcn">${vGCN(o)}</div>
   <div class="card" id="qt">${vQT(o)}</div>
   <div class="card"><div class="mut" style="font-weight:600">Tiền của đơn</div>${bar('Đã thu', o.daThu, o.dt, '#2F7A4B')}${bar('Đã chi', o.daChi, o.dtkp, '#8E2A1E')}<div class="mut" style="margin-top:8px">Doanh thu dự kiến ${vnd(o.dt)} · DTKP ${vnd(o.dtkp)} · còn phải thu ${vnd(o.phaiThu)}</div></div>
   <div class="card" id="hoso">${vHoSo(o)}</div>
@@ -497,9 +507,10 @@ function render() {
   <main>${S.err ? `<div class="err" style="margin-bottom:10px">${esc(S.err)}</div>` : ''}${V()}</main>
   <nav class="tabs" aria-label="Mục">${tabs.map((t) => `<button class="tab" data-view="${t[0]}" ${S.view === t[0] ? 'aria-current="page"' : ''}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${svgTab[t[0]]}</svg>${t[1]}</button>`).join('')}</nav>
   ${o ? `<div class="sheet" role="dialog" aria-label="${esc(o.ma)}">${vChiTiet(o)}</div>` : ''}`;
+  paintNoteBtn();
 }
 
-const APP_VER = '2026-11-27.2'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.3'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
@@ -526,8 +537,8 @@ function vTim() {
     return `<button class="sr" data-sopen="${esc(o.ma)}">${thumb(o)}<span style="min-width:0;flex:1"><b>${hl(o.ma, words)}</b><small>${hl(o.kh + ' · ' + o.sp, words)}</small><span class="tags"><span class="tag ${ttCls(o)}">${esc(o.tt)}</span>${o.tt === 'Run' ? `<span class="tag ${dc}">${esc(dl)}</span>` : ''}${o.cur && o.tt === 'Run' ? `<span class="tag">Chờ ${esc(o.cur.ai)}</span>` : ''}</span></span></button>`; }).join('')
     : `<div class="mut" style="margin-top:20px;text-align:center">Không thấy đơn nào có “${esc($('#sq').value)}”.<br>Thử gõ ngắn hơn, ví dụ chỉ tên khách.</div>`;
 }
-function moTim(q) { if (!S.data) return; $('#sov').hidden = false; const i = $('#sq'); if (q != null) i.value = q; vTim(); setTimeout(() => i.focus(), 30); }
-function dongTim() { $('#sov').hidden = true; $('#sq').blur(); }
+function moTim(q) { if (!S.data) return; $('#sov').hidden = false; paintNoteBtn(); const i = $('#sq'); if (q != null) i.value = q; vTim(); setTimeout(() => i.focus(), 30); }
+function dongTim() { $('#sov').hidden = true; $('#sq').blur(); paintNoteBtn(); }
 function luuTim() { const v = $('#sq').value.trim(); if (!v) return; SQ.recent = [v].concat(SQ.recent.filter((x) => nd(x) !== nd(v))).slice(0, 6); store.set('la-tim', JSON.stringify(SQ.recent)); }
 document.addEventListener('input', (e) => { if (e.target.id === 'sq') vTim(); });
 document.addEventListener('keydown', (e) => { if (e.target.id === 'sq' && e.key === 'Enter') { luuTim(); e.target.blur(); } if (e.key === 'Escape' && !$('#sov').hidden) dongTim(); });
@@ -690,6 +701,7 @@ function paintHopBtn() {
   if (!b) { b = document.createElement('button'); b.id = 'hopb'; b.className = 'hopb'; b.setAttribute('data-hop', ''); document.body.appendChild(b); }
   b.hidden = !S.data || !n || !$('#pov').hidden;
   b.textContent = '📥 ' + n + ' file chờ xếp vào đơn';
+  paintNoteBtn();
 }
 function hopLoad(moNeuMoi) {
   if (!S.data || window.__MOCK) return Promise.resolve();
@@ -728,7 +740,7 @@ function donOpts() {
     return l.length ? `<optgroup label="${ten}">${l.map((o) => `<option value="${esc(o.ma)}" ${o.ma === HOP.ma ? 'selected' : ''}>${esc(o.ma)}</option>`).join('')}</optgroup>` : '';
   }).join('');
 }
-function moP(mode) { POV.mode = mode; $('#pov').hidden = false; paintHopBtn(); if (mode === 'hop') vHop(); else vTB(); }
+function moP(mode) { POV.mode = mode; $('#pov').hidden = false; paintHopBtn(); if (mode === 'hop') vHop(); else if (mode === 'note') vNote(); else vTB(); }
 function dongP() { POV.mode = ''; $('#pov').hidden = true; paintHopBtn(); }
 function vHop() {
   const L = hopItems();
@@ -784,6 +796,127 @@ async function boHop(key) {
   else await boChia(key);
   delete HOP.loai[key]; vHop(); paintHopBtn();
 }
+
+/* ---------- Ghi chú nhanh (anh Nix 27/11/2026): gõ 1 câu, app tự đoán đơn + bước tiến độ, người ghi bấm 1 lần để lưu.
+   Báo xong thì hỏi rồi mới tick bước. Lưu vào sổ (tab "Ghi chú nhanh" + cột Ghi chú của bước), báo 2 người còn lại. ---------- */
+const NOTE = { ma: '', so: 0, nd: '', tuMa: false, tuSo: false, cand: [], chac: false, busy: false, err: '' };
+const GEN = new Set(['cong', 'tnhh', 'dich', 'thuong', 'mai', 'san', 'xuat', 'viet', 'nam', 'group', 'company', 'corp', 'saigon', 'quang', 'cao', 'shop', 'store']);
+const ntext = (x) => ' ' + nd(x).replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
+/* Từ khoá từng bước; chọn bước có từ khoá xuất hiện sớm nhất trong câu */
+const KBUOC = [
+  [4, /\b(file (in|sx|san xuat|khuon|be|thiet ke)|binh file)\b/],
+  [3, /\b(lenh san xuat|lenh sx|lenh|lsx)\b/],
+  [2, /\b(dtkp|du tru|chi phi du kien)\b/],
+  [5, /\b(nvl|nguyen vat lieu|vat tu|giay|muc|khuon|mua hang|dat hang ncc|phoi)\b/],
+  [7, /\b(thanh pham|can mang|can bong|can mo|be|boi|ep kim|ep nhu|cat xen|cat|dan hop|dan tui|dan keo|gia cong|dong cuon|dong gay|dong ghim|dong lo xo|dong kim|khau chi|dong goi|xep hop)\b/],
+  [6, /\b(in|may in|bai in|kem|test mau|ban in|len may)\b/],
+  [8, /\b(giao|ship|van chuyen|nhan hang|xe|grab|ahamove|lalamove|phieu giao|nghiem thu)\b/],
+  [9, /\b(thu tien|chuyen khoan|ck|thanh toan|tra tien|cong no|da thu|tien ve|hoa don|xuat hd)\b/],
+  [1, /\b(chot|po|hop dong|ky hd|ky hop dong|coc|dat coc)\b/],
+  [10, /\b(done|hoan tat don|dong don)\b/]
+];
+function doanBuoc(t) { let best = 0, pos = 1e9; KBUOC.forEach(([so, re]) => { const m = re.exec(t); if (m && m.index < pos) { pos = m.index; best = so; } }); return best; }
+const laXong = (x) => { const t = ntext(x); return /\b(xong|hoan thanh|hoan tat|done|roi|ok roi)\b|\bda (in|giao|mua|thu|nhan|ve|chot|ky|lam|gui|can|be|boi|dat|chuyen|co|xong|duyet)\b/.test(t) && !/\bchua (xong|in|giao|mua|thu|nhan|ve|lam|co|duoc|chot|ky|gui)\b/.test(t); };
+function doanDon(t) {
+  const tn = t.replace(/ /g, ''), w = (x) => !!x && t.includes(' ' + x + ' '), uu = { Run: 0.5, 'Giao hàng': 0.4, Bid: 0.2, Done: 0 };
+  return S.data.orders.filter((o) => o.tt !== 'Failed').map((o) => {
+    const tk = nd(o.ma).split(/\s+/).filter(Boolean), kh = tk[0] || '', yy = /^\d{4,6}$/.test(tk[tk.length - 1] || '') ? tk.pop() : '', sp = tk.slice(1);
+    const khN = nd(o.kh).replace(/[^a-z0-9]+/g, '');
+    let sc = 0;
+    if ((kh.length >= 5 ? tn.includes(kh) : w(kh)) || (khN.length >= 5 && tn.includes(khN))) sc += 5;
+    else if (nd(o.kh).split(/[^a-z0-9]+/).some((x) => x.length >= 4 && !GEN.has(x) && w(x))) sc += 3;
+    const spP = sp.join(' ');
+    if (spP && w(spP)) sc += 4; else sp.forEach((x) => { if (x.length >= 3 && w(x)) sc += 2; });
+    if (yy && w(yy)) sc += 1;
+    return { o, sc: sc ? sc + (uu[o.tt] || 0) : 0 };
+  }).filter((x) => x.sc >= 4).sort((a, b) => b.sc - a.sc);
+}
+function doanNote() {
+  const t = ntext(NOTE.nd);
+  if (!NOTE.tuMa) {
+    const c = doanDon(t); NOTE.cand = c.slice(0, 3);
+    NOTE.chac = c.length === 1 || (c.length > 1 && c[0].sc - c[1].sc >= 2);
+    NOTE.ma = c.length && (NOTE.chac || c[0].sc > c[1].sc) ? c[0].o.ma : '';
+  }
+  if (!NOTE.tuSo) { const o = NOTE.ma && S.data.orders.find((x) => x.ma === NOTE.ma), so = doanBuoc(t); NOTE.so = o && (o.steps || []).some((s) => s.so === so) ? so : 0; }
+}
+const tenDon = (ma) => ma === 'CHUNG' ? 'Việc chung' : ma;
+const noteRow = (n, coMa) => `<div class="nr"><div class="nrh"><b>${esc(n.ai)}</b><span>${esc(n.t)}</span>${coMa ? (n.ma === 'CHUNG' ? '<span>· Việc chung</span>' : `<button class="nrm" data-nopen="${esc(n.ma)}">${esc(n.ma)}</button>`) : ''}${n.so ? `<span class="tag t-idle">${esc(SHORT[n.so - 1] || '')}</span>` : ''}${n.xong ? '<span class="tag t-ok">✓ xong</span>' : ''}</div><div class="nrb">${esc(n.nd)}</div></div>`;
+const notesCua = (ma) => ((S.data && S.data.notes) || []).filter((n) => n.ma === ma);
+function vGCN(o) {
+  const L = notesCua(o.ma);
+  return `<div class="hh2"><b>📝 Ghi chú nhanh</b><button class="nadd" data-nnew="${esc(o.ma)}">✏️ Ghi chú</button></div>${L.length ? L.slice(0, 12).map((n) => noteRow(n, false)).join('') + (L.length > 12 ? `<div class="mut" style="margin-top:6px">… và ${L.length - 12} ghi chú cũ hơn trong sổ, tab Ghi chú nhanh.</div>` : '') : '<div class="mut">Chưa có ghi chú. Bấm ✏️ để ghi nhanh, app tự gắn vào đúng bước.</div>'}`;
+}
+function noteBuoc(o, so) { const L = notesCua(o.ma).filter((n) => n.so === so).slice(0, 3); return L.length ? `<div style="margin-top:8px">${L.map((n) => noteRow(n, false)).join('')}</div>` : ''; }
+function noteDonOpts() {
+  const G = [['Run', 'Đang chạy'], ['Giao hàng', 'Đã giao'], ['Bid', 'Báo giá'], ['Done', 'Đã xong']], L = S.data.orders.filter((o) => o.tt !== 'Failed');
+  return `<option value="">— Chọn đơn hàng —</option><option value="CHUNG" ${NOTE.ma === 'CHUNG' ? 'selected' : ''}>Việc chung (không thuộc đơn nào)</option>` + G.map(([tt, ten]) => {
+    const l = L.filter((o) => o.tt === tt);
+    return l.length ? `<optgroup label="${ten}">${l.map((o) => `<option value="${esc(o.ma)}" ${o.ma === NOTE.ma ? 'selected' : ''}>${esc(o.ma)}</option>`).join('')}</optgroup>` : '';
+  }).join('');
+}
+function vNoteSug() {
+  const o = NOTE.ma && NOTE.ma !== 'CHUNG' && S.data.orders.find((x) => x.ma === NOTE.ma), steps = (o && o.steps) || [], s = steps.find((x) => x.so === NOTE.so);
+  const chips = !NOTE.tuMa && NOTE.cand.length > 1 && !NOTE.chac ? `<div class="mut" style="margin:2px 0 6px">Câu này khớp nhiều đơn, anh bấm chọn đúng đơn:</div><div class="schips">${NOTE.cand.map((c) => `<button data-nma="${esc(c.o.ma)}" class="${c.o.ma === NOTE.ma ? 'on' : ''}">${esc(c.o.ma)}</button>`).join('')}</div>` : '';
+  const hoi = s && s.so <= 9 && s.tt !== 'Xong' && laXong(NOTE.nd), dis = NOTE.busy ? 'disabled' : '';
+  return `<div class="hlab">Đơn hàng${NOTE.ma && !NOTE.tuMa ? '<span class="nai">app tự chọn</span>' : ''}</div>
+    <select id="ndon" class="subsel" style="margin-top:0" aria-label="Đơn hàng">${noteDonOpts()}</select>${chips}
+    <div class="hlab">Bước tiến độ${NOTE.so && !NOTE.tuSo ? '<span class="nai">app tự chọn</span>' : ''}</div>
+    <select id="nbuoc" class="subsel" style="margin-top:0" aria-label="Bước tiến độ" ${steps.length ? '' : 'disabled'}><option value="0">${steps.length ? 'Ghi chú chung của đơn (không gắn bước)' : o ? 'Đơn chưa có tiến độ: ghi chú chung của đơn' : '—'}</option>${steps.map((x) => `<option value="${x.so}" ${x.so === NOTE.so ? 'selected' : ''}>${x.so}. ${esc(STEP[x.so - 1] || x.ten)}${x.tt === 'Xong' ? ' ✓' : ''}</option>`).join('')}</select>
+    ${NOTE.err ? `<div class="err" style="margin-top:4px">${esc(NOTE.err)}</div>` : ''}
+    ${hoi ? `<button class="hgo" data-nluu="1" ${dis}>${NOTE.busy ? 'Đang lưu…' : 'Lưu + ✓ xác nhận bước ' + esc(STEP[s.so - 1]) + ' đã xong'}</button><button class="hgo hgo2" data-nluu="0" ${dis}>Chỉ lưu ghi chú, chưa tick</button>`
+      : `<button class="hgo" data-nluu="0" ${dis}>${NOTE.busy ? 'Đang lưu…' : 'Lưu ghi chú'}</button>`}
+    <div class="mut" style="margin-top:8px;font-size:12.5px;line-height:1.5">Ghi vào sổ, tab Ghi chú nhanh${NOTE.so ? ', và cột Ghi chú của bước này trong tab Tiến độ' : ''}. Báo cho 2 người còn lại.</div>`;
+}
+function paintNS() { const el = $('#nsug'); if (el) el.innerHTML = vNoteSug(); }
+function vNote() {
+  $('#pov-t').textContent = 'Ghi chú nhanh';
+  const L = ((S.data && S.data.notes) || []).slice(0, 8);
+  $('#pres').innerHTML = `<textarea id="nt" class="nta" rows="3" enterkeyhint="done" placeholder="Gõ 1 câu, ví dụ: Furiin decal in xong, mai cán màng" aria-label="Nội dung ghi chú">${esc(NOTE.nd)}</textarea>
+    <div id="nsug">${vNoteSug()}</div>
+    <div class="hlab" style="margin-top:18px">Ghi chú gần đây</div><div class="note" style="padding:4px 12px">${L.length ? L.map((n) => noteRow(n, true)).join('') : '<div class="mut" style="padding:8px 0">Chưa có ghi chú nào.</div>'}</div>`;
+}
+function moNote(ma) {
+  Object.assign(NOTE, { ma: ma || '', so: 0, nd: store.get('la-note-nhap') || '', tuMa: !!ma, tuSo: false, cand: [], chac: false, busy: false, err: '' });
+  if (NOTE.nd) doanNote();
+  moP('note'); setTimeout(() => { const t = $('#nt'); if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }, 80);
+}
+function paintNoteBtn() {
+  let b = $('#ntb');
+  if (!b) { b = document.createElement('button'); b.id = 'ntb'; b.className = 'ntb'; b.setAttribute('data-nnew', ''); b.setAttribute('aria-label', 'Ghi chú nhanh'); b.innerHTML = '<span aria-hidden="true">✏️</span>Ghi nhanh'; document.body.appendChild(b); }
+  b.hidden = !S.data || !$('#pov').hidden || !$('#sov').hidden;
+  const h = $('#hopb'); b.classList.toggle('up', !!h && !h.hidden);
+}
+async function luuNote(xong) {
+  const v = NOTE.nd.trim();
+  if (!v) { NOTE.err = 'Anh gõ nội dung ghi chú trước.'; paintNS(); return; }
+  if (!NOTE.ma) { NOTE.err = 'Anh chọn đơn hàng, hoặc chọn "Việc chung".'; paintNS(); return; }
+  NOTE.busy = true; NOTE.err = ''; paintNS();
+  const ma = NOTE.ma, so = NOTE.so;
+  try {
+    const r = await api({ action: 'note', ma: ma === 'CHUNG' ? '' : ma, so, nd: v, xong: !!xong });
+    (S.data.notes = S.data.notes || []).unshift(r.note);
+    if (r.note.xong) { const o = S.data.orders.find((x) => x.ma === ma), s = o && o.steps.find((x) => x.so === so); if (s) { s.tt = 'Xong'; s.xong = S.data.today; o.daXong = o.steps.filter((x) => x.tt === 'Xong').length; o.cur = o.steps.find((x) => x.tt !== 'Xong') || null; } }
+    store.set('la-note-nhap', null); NOTE.nd = ''; NOTE.busy = false;
+    dongP(); render();
+    toast('Đã ghi vào ' + tenDon(ma) + (so ? ' · ' + STEP[so - 1] : '') + (r.note.xong ? ' ✓' : ''));
+    load(S.code);
+  } catch (e) { NOTE.busy = false; NOTE.err = 'Chưa lưu được: ' + e.message; paintNS(); }
+}
+document.addEventListener('input', (e) => {
+  if (e.target.id !== 'nt') return;
+  NOTE.nd = e.target.value; store.set('la-note-nhap', NOTE.nd || null); NOTE.err = ''; doanNote(); paintNS();
+});
+document.addEventListener('change', (e) => {
+  if (e.target.id === 'ndon') { NOTE.ma = e.target.value; NOTE.tuMa = true; NOTE.err = ''; if (!NOTE.tuSo) { NOTE.so = 0; doanNote(); } else { const o = S.data.orders.find((x) => x.ma === NOTE.ma); if (!o || !(o.steps || []).some((s) => s.so === NOTE.so)) NOTE.so = 0; } paintNS(); }
+  else if (e.target.id === 'nbuoc') { NOTE.so = +e.target.value; NOTE.tuSo = true; paintNS(); }
+});
+document.addEventListener('click', (e) => {
+  const n = e.target.closest('[data-nnew]'); if (n) { moNote(n.dataset.nnew || S.open || ''); return; }
+  const c = e.target.closest('[data-nma]'); if (c) { NOTE.ma = c.dataset.nma; NOTE.tuMa = true; NOTE.chac = true; NOTE.err = ''; if (!NOTE.tuSo) { NOTE.so = 0; doanNote(); } paintNS(); return; }
+  const l = e.target.closest('[data-nluu]'); if (l && !NOTE.busy) { luuNote(l.dataset.nluu === '1'); return; }
+  const m = e.target.closest('[data-nopen]'); if (m) { dongP(); dongTim(); S.open = m.dataset.nopen; render(); }
+});
 
 /* ---------- Thông báo đẩy (Firebase Cloud Messaging, dự án loc-an-app) ---------- */
 const FB = { apiKey: 'AIzaSyAEPhr8vATIb6nEkc0DOw0s8TMOS_X-Wt4', authDomain: 'loc-an-app.firebaseapp.com', projectId: 'loc-an-app', storageBucket: 'loc-an-app.firebasestorage.app', messagingSenderId: '26458737838', appId: '1:26458737838:web:585683ca739bbf49e8f13f' };
