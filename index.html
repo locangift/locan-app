@@ -149,8 +149,9 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 .sr mark{background:#F6E3B4;color:inherit;border-radius:3px;padding:0 1px}
 .sr .tags{margin-top:4px}
 /* Hồ sơ OneDrive */
-#hoso .hh{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
-#hoso .hh b{font-size:15px}
+.mds{position:fixed;inset:0;z-index:95;background:rgba(30,15,10,.45);display:flex;align-items:flex-end;justify-content:center}.mds[hidden]{display:none}
+.mdsb{background:#fff;width:100%;max-width:560px;max-height:78vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom))}
+.mdsx{border:1px solid var(--ke);background:#fff;border-radius:10px;padding:7px 12px;font-weight:600;color:var(--muc);cursor:pointer}
 .upb{display:inline-flex;align-items:center;gap:6px;background:var(--son);color:var(--kem);border:0;border-radius:10px;padding:9px 14px;font-weight:600;cursor:pointer;font-size:14px}
 .upb input{display:none}
 .subsel{width:100%;margin:6px 0 10px;padding:9px 10px;border:1px solid var(--ke);border-radius:10px;background:#fff;font-size:14px}
@@ -463,6 +464,7 @@ const QT = {};
 const gdBuoc = (s) => { const t = nd(s.ten); return /giao hang/.test(t) ? 'Giao hàng' : /thu tien|nghiem thu|du ho so|done|hoan tat/.test(t) ? 'Done' : 'Run'; };
 function vQT(o) {
   const idx = GD.indexOf(o.tt), fail = o.tt === 'Failed', h = o.hoSo || {};
+  if (HS.ma !== o.ma) setTimeout(() => hsLoad(o.ma), 0);
   const L = HS.ma === o.ma && HS.d ? locHoSo(HS.d.files) : null;
   const f = (k, sheet) => sheet ? true : L ? L.some((x) => x.k === k) : null;
   const D = {
@@ -472,14 +474,14 @@ function vQT(o) {
     Done: [['Chứng từ nhận tiền', f('nt', h.phieu), 1, 'nt'], ['Hóa đơn đã ký / xác nhận hoàn tất', f('hdk', h.phieu), 1, 'hdk'], ['Thu đủ tiền khách', o.dt > 0 ? !(o.phaiThu > 0) && o.daThu > 0 : false, 1], ['Trả đủ nhà cung cấp', !(o.conChi > 0), 1], ['3 người duyệt: Nix, Trung, Tâm', 'cho', 1]]
   };
   const em = (v, bb) => v === true ? ['y', '✓'] : v === 'cho' ? ['o', '○'] : v === false ? (bb ? ['n', '✕'] : ['o', '○']) : ['u', '…'];
-  const dangGui = (k) => HS.up.some((u) => u.ma === o.ma && u.k === k && !u.done && !u.err);
+  const dangGui = (k) => HS.up.find((u) => u.ma === o.ma && u.k === k && !u.done && !u.err);
   /* File sản xuất: còn ＋ để gửi thêm tới khi bước 4 "File sản xuất" được xác nhận đủ; các chứng từ khác có rồi thì thôi ＋ */
   const fsxDu = (o.steps || []).some((s) => s.so === 4 && s.tt === 'Xong');
   const conThem = (k, v) => k === 'fsx' && v === true && !fsxDu;
-  /* Đã có file: nút "Mở" (1 file mở luôn; nhiều file → "Mở (n)" lọc Hồ sơ đơn hàng theo loại đó) */
+  /* Đã có file: nút "Mở" (1 file mở luôn; nhiều file → "Mở (n)" mở khung nổi liệt kê file cùng loại) */
   const fsOf = (k) => (k && L ? L.filter((x) => x.k === k) : []);
   const mo = (k) => { const fs = fsOf(k); if (!fs.length) return ''; if (fs.length > 1) return `<button class="qmo" data-qmo="${k}">Mở (${fs.length})</button>`; const x = fs[0]; return `<button class="qmo" ${/^image\//.test(x.loai || '') ? 'data-fview' : 'data-fopen'}="${esc(x.id)}" aria-label="Mở ${esc(x.ten)}">Mở</button>`; };
-  const cong = (ten, v, k) => !k || (v === true && !conThem(k, v)) || fail ? '' : dangGui(k) ? '<span class="qup on">đang gửi…</span>' : `<button class="qup" data-qup="${k}" aria-label="Gửi file ${esc(ten)}">＋</button>`;
+  const cong = (ten, v, k) => !k || (v === true && !conThem(k, v)) || fail ? '' : dangGui(k) ? `<span class="qup on">đang gửi ${dangGui(k).pct || 0}%</span>` : `<button class="qup" data-qup="${k}" aria-label="Gửi file ${esc(ten)}">＋</button>`;
   const row = ([ten, v, bb, k]) => { const [c, s] = em(v, bb), m = mo(k); return `<div class="ck"><em class="${c}">${s}</em><span>${esc(ten)}${conThem(k, v) ? '<small class="ckt">gửi thêm được tới khi đủ file</small>' : ''}</span>${m ? '' : `<small>${v === 'cho' ? 'nút duyệt sắp có' : bb ? 'bắt buộc' : 'không bắt buộc'}</small>`}${m}${cong(ten, v, k)}</div>`; };
   const step = (s) => { const c = s.tt === 'Xong' ? '#2F7A4B' : s.tt === 'Trễ' ? '#B3261E' : s.tt === 'Đang làm' ? '#2B5F9E' : '#D9CFC0'; return `<div class="sl"><i style="background:${c}"></i><b>${esc(s.ten.replace(/^\d+\.\s*/, ''))}</b><span class="tag ${s.tt === 'Xong' ? 't-ok' : s.tt === 'Trễ' ? 't-bad' : s.tt === 'Đang làm' ? 't-run' : 't-idle'}">${esc(s.tt)}</span><small>${esc(s.ai)} · ${s.tt === 'Xong' ? 'xong ' + dm(s.xong) : 'hạn ' + dm(s.hx)}${s.viec ? ' · ' + esc(s.viec) : ''}</small></div>`; };
   const pill = GD.map((g, i) => { const c = fail ? 'f' : i < idx ? 'x' : i === idx ? 'c' : ''; return `<div class="gd ${c}"><i>${c === 'x' ? '✓' : i + 1}</i><span>${g}</span></div>`; }).join('');
@@ -490,7 +492,7 @@ function vQT(o) {
     const thieu = !fail && i <= idx && need.some((d) => d[1] === false);
     return `<details class="gdd" data-k="${esc(key)}" ${open ? 'open' : ''}><summary><b>${i + 1}. ${g}</b><span class="gds ${thieu ? 'w' : ok === need.length ? 'g' : ''}">${ok}/${need.length} chứng từ${ss.length ? ' · ' + xong + '/' + ss.length + ' bước' : ''}</span></summary>${docs.map(row).join('')}${ss.length ? '<div class="gsub">Các bước</div>' + ss.map(step).join('') : ''}</details>`;
   }).join('');
-  return `<div class="hh2"><b>Quy trình đơn</b>${fail ? '<span class="tag t-idle">Failed · đơn không thành</span>' : `<span class="mut">đang ở ${esc(o.tt)}</span>`}</div><div class="gdl">${pill}</div>${L ? '' : '<div class="mut" style="margin:2px 0 6px">Đang đối chiếu chứng từ với thư mục OneDrive…</div>'}${sec}`;
+  return `<div class="hh2"><b>Quy trình đơn</b>${fail ? '<span class="tag t-idle">Failed · đơn không thành</span>' : `<span class="mut">đang ở ${esc(o.tt)}</span>`}</div><div class="gdl">${pill}</div>${L ? vBanCu() : HS.ma === o.ma && HS.err ? `<div class="err" style="margin:2px 0 6px">Chưa đọc được thư mục OneDrive: ${esc(HS.err)}</div>` : '<div class="mut" style="margin:2px 0 6px">Đang đối chiếu chứng từ với thư mục OneDrive…</div>'}${sec}`;
 }
 document.addEventListener('toggle', (e) => { const d = e.target; if (d && d.classList && d.classList.contains('gdd')) QT[d.dataset.k] = d.open; }, true);
 /* ---------- Timeline 10 bước: bấm vào bước để xem quy tắc và xác nhận ---------- */
@@ -577,7 +579,6 @@ function vChiTiet(o) {
   <div class="card" id="tl">${vTL(o)}</div>
   <div class="card" id="qt">${vQT(o)}</div>
   <div class="card"><div class="mut" style="font-weight:600">Tiền của đơn</div>${bar('Đã thu', o.daThu, o.dt, '#2F7A4B')}${bar('Đã chi', o.daChi, o.dtkp, '#8E2A1E')}<div class="mut" style="margin-top:8px">Doanh thu dự kiến ${vnd(o.dt)} · DTKP ${vnd(o.dtkp)} · còn phải thu ${vnd(o.phaiThu)}</div></div>
-  <div class="card" id="hoso">${vHoSo(o)}</div>
   </main>`;
 }
 
@@ -604,7 +605,7 @@ function render() {
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.20'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.21'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
@@ -689,27 +690,23 @@ function locHoSo(files) {
     if (!cur || f.sua > cur.sua || (f.sua === cur.sua && /pdf/.test(f.loai))) by[g] = Object.assign({ k }, f); });
   return Object.values(by).sort((a, b) => (a.sua < b.sua ? 1 : -1));
 }
-function vHoSo(o) {
-  if (HS.ma !== o.ma) setTimeout(() => hsLoad(o.ma), 0);
-  const d = HS.ma === o.ma ? HS.d : null;
-  const L0 = d ? locHoSo(d.files) : [], dem = (k) => L0.filter((f) => f.k === k).length;
-  /* Chọn loại: vừa lọc danh sách bên dưới, vừa là loại hồ sơ khi gửi file */
-  const head = `<div class="hh"><b>Hồ sơ đơn hàng</b><button class="upb" data-hsup>＋ Gửi file</button></div>
-    <select class="subsel" id="hs-loai" aria-label="Lọc và gửi theo loại hồ sơ"><option value="">Tất cả hồ sơ${d ? ' (' + L0.length + ')' : ''}</option>${optLoai(HS.loai, d ? dem : null)}</select>`;
-  const ups = HS.up.filter((u) => u.ma === o.ma).map((u) => `<div class="upr ${u.err ? 'er' : ''}"><b>${esc(u.ten)}</b> · ${u.err ? esc(u.err) : u.done ? 'đã lưu vào OneDrive ✓' : `đang gửi ${u.pct}% (${kb(u.sent)} / ${kb(u.size)})`}${u.err || u.done ? '' : `<div class="trk"><i style="width:${u.pct}%;background:var(--son)"></i></div>`}</div>`).join('');
-  if (HS.err) return head + ups + `<div class="err">${esc(HS.err)}</div>`;
-  if (!d) return head + ups + '<div class="mut">Đang mở thư mục OneDrive…</div>';
-  const L = locHoSo(d.files);
-  if (!L.length) return head + ups + `<div class="mut">${d.thuMuc ? 'Chưa có hồ sơ theo quy trình trong thư mục ' + esc(d.thuMuc) + '.' : 'Đơn này chưa có thư mục trên OneDrive. Gửi file đầu tiên là app tự tạo thư mục.'}</div>`;
-  const row = (f) => `<div class="fl"><span class="fi">${f.anh ? `<img src="${esc(f.anh)}" alt="" loading="lazy">` : esc(ext(f.ten))}</span><span><b>${esc(f.ten)}</b><small>${kb(f.size)} · ${new Date(f.sua).toLocaleDateString('vi-VN')}${f.ai ? ' · ' + esc(f.ai) : ''}</small></span><span class="fa">${/^image\//.test(f.loai) ? `<button data-fview="${esc(f.id)}">Xem</button>` : `<button data-fopen="${esc(f.id)}">Mở</button>`}${isNix() ? `<button class="fx" data-fdel="${esc(f.id)}" data-fn="${esc(f.ten)}" aria-label="Xóa ${esc(f.ten)}">✕</button>` : ''}</span></div>`;
-  const cu = (d.cu || []);
-  const bn = cu.length ? `<div class="upr" style="background:var(--warnb);color:var(--warn)"><b>Có ${cu.length} bản cũ đã có bản mới hơn:</b>${cu.map((x) => `<div style="font-size:12.5px;margin-top:3px">• ${esc(x.ten)}<br><span style="opacity:.8">→ mới: ${esc(x.moi)}</span></div>`).join('')}<div class="fa" style="margin-top:8px"><button data-cuxoa>Xoá bản cũ</button><button data-cugiu>Giữ lại</button></div></div>` : '';
-  const LL = HS.loai ? L.filter((f) => f.k === HS.loai) : L, tenLoai = HS.loai ? (LOAI.find((l) => l[0] === HS.loai) || [, ''])[1] : '';
-  return head + ups + bn + `<div class="mut" style="margin-bottom:4px">${esc(d.thuMuc)} · ${HS.loai ? LL.length + ' / ' + L.length : L.length} hồ sơ${HS.busy ? ' · đang làm mới…' : ''}</div>` +
-    (HS.loai && !LL.length ? `<div class="mut" style="padding:14px 0">Chưa có file nhóm “${esc(tenLoai)}”. Bấm <b>＋ Gửi file</b> để thêm.</div>` :
-    (HS.loai ? LL.map(row).join('') : GDS.map((g) => { const ks = LOAI.filter((l) => l[3] === g).map((l) => l[0]), fs = LL.filter((f) => ks.includes(f.k)).sort((a, b) => ks.indexOf(a.k) - ks.indexOf(b.k) || (a.sua < b.sua ? 1 : -1)); return fs.length ? `<div class="grp">${g}</div>` + fs.map(row).join('') : ''; }).join('')));
+/* 27/11 15:56 anh Nix: bỏ khung "Hồ sơ đơn hàng" (Quy trình đơn đã có ＋ và Mở cho từng chứng từ).
+   Danh sách file vẫn tải ở đây (HS) để Quy trình đơn đối chiếu; "Mở (n)" mở khung nổi liệt kê file cùng loại. */
+const rowFile = (f) => `<div class="fl"><span class="fi">${f.anh ? `<img src="${esc(f.anh)}" alt="" loading="lazy">` : esc(ext(f.ten))}</span><span><b>${esc(f.ten)}</b><small>${kb(f.size)} · ${new Date(f.sua).toLocaleDateString('vi-VN')}${f.ai ? ' · ' + esc(f.ai) : ''}</small></span><span class="fa">${/^image\//.test(f.loai) ? `<button data-fview="${esc(f.id)}">Xem</button>` : `<button data-fopen="${esc(f.id)}">Mở</button>`}${isNix() ? `<button class="fx" data-fdel="${esc(f.id)}" data-fn="${esc(f.ten)}" aria-label="Xóa ${esc(f.ten)}">✕</button>` : ''}</span></div>`;
+function vBanCu() {
+  const cu = (HS.d && HS.d.cu) || [];
+  return cu.length ? `<div class="upr" style="background:var(--warnb);color:var(--warn)"><b>Có ${cu.length} bản cũ đã có bản mới hơn:</b>${cu.map((x) => `<div style="font-size:12.5px;margin-top:3px">• ${esc(x.ten)}<br><span style="opacity:.8">→ mới: ${esc(x.moi)}</span></div>`).join('')}<div class="fa" style="margin-top:8px"><button data-cuxoa>Xoá bản cũ</button><button data-cugiu>Giữ lại</button></div></div>` : '';
 }
-function paintHS() { const el = document.getElementById('hoso'); const o = S.open && S.data && S.data.orders.find((x) => x.ma === S.open); if (el && o) el.innerHTML = vHoSo(o); const q = document.getElementById('qt'); if (q && o) q.innerHTML = vQT(o); }
+const MDS = { k: '' };
+function vMDS() {
+  const L = S.open && HS.ma === S.open && HS.d ? locHoSo(HS.d.files).filter((f) => f.k === MDS.k) : [];
+  const ten = (LOAI.find((l) => l[0] === MDS.k) || [, ''])[1];
+  return `<div class="mdsb" role="dialog" aria-label="${esc(ten)}"><div class="hh2"><b>${esc(ten)} (${L.length})</b><button class="mdsx" data-mdsx>Đóng</button></div>${L.length ? L.map(rowFile).join('') : '<div class="mut" style="padding:10px 0">Không còn file nào.</div>'}<button class="upb" data-qup="${MDS.k}" style="margin-top:12px">＋ Gửi thêm file</button></div>`;
+}
+function moMDS(k) { MDS.k = k; let el = document.getElementById('mds'); if (!el) { el = document.createElement('div'); el.id = 'mds'; el.className = 'mds'; document.body.appendChild(el); } el.innerHTML = vMDS(); el.hidden = false; }
+function dongMDS() { MDS.k = ''; const el = document.getElementById('mds'); if (el) el.hidden = true; }
+document.addEventListener('click', (e) => { const el = document.getElementById('mds'); if (!el || el.hidden) return; if (e.target === el || e.target.closest('[data-mdsx]')) dongMDS(); });
+function paintHS() { const o = S.open && S.data && S.data.orders.find((x) => x.ma === S.open); const q = document.getElementById('qt'); if (q && o) q.innerHTML = vQT(o); const m = document.getElementById('mds'); if (m && !m.hidden) { if (S.open && MDS.k) m.innerHTML = vMDS(); else dongMDS(); } }
 const CHUNK = 327680 * 16; // 5 MB, bội số 320 KB theo yêu cầu OneDrive
 async function guiFile(ma, file, sub, tenMoi, k) {
   const u = { ma, k: k || '', ten: tenMoi || file.name, size: file.size, sent: 0, pct: 0 }; HS.up.push(u); paintHS();
@@ -796,14 +793,10 @@ function chonFile(ma, k, cb) {
   PICK.ma = ma; PICK.k = k; PICK.cb = cb || null; PICK.luc = Date.now(); i.click();
 }
 document.addEventListener('click', (e) => {
-  const q = e.target.closest('[data-qup]'); if (q && S.open) { chonFile(S.open, q.dataset.qup); return; }
-  const qm = e.target.closest('[data-qmo]'); if (qm && S.open) { HS.loai = qm.dataset.qmo; paintHS(); requestAnimationFrame(() => cuonDen(document.getElementById('hoso'))); return; }
-  if (e.target.closest('[data-hsup]') && S.open) { if (!HS.loai) { alert('Anh chọn loại hồ sơ ở ô bên dưới (báo giá, DTKP, file in…) rồi bấm Gửi file.'); return; } chonFile(S.open, HS.loai); }
+  const q = e.target.closest('[data-qup]'); if (q && S.open) { dongMDS(); chonFile(S.open, q.dataset.qup); return; }
+  const qm = e.target.closest('[data-qmo]'); if (qm && S.open) { moMDS(qm.dataset.qmo); return; }
 });
 function openLb(src) { const d = document.createElement('div'); d.className = 'lbx'; d.innerHTML = `<button aria-label="Đóng">✕</button><img alt="">`; d.querySelector('img').src = src; d.addEventListener('click', () => d.remove()); document.body.appendChild(d); }
-document.addEventListener('change', (e) => {
-  if (e.target.id === 'hs-loai') { HS.loai = e.target.value; paintHS(); return; }
-});
 document.addEventListener('click', (e) => {
   const cb = e.target.closest('[data-cuxoa],[data-cugiu]');
   if (cb && S.open && HS.d && HS.d.cu && HS.d.cu.length) {
@@ -1201,7 +1194,7 @@ async function luuNote(xong) {
   try {
     const r = await api({ action: 'note', ma: ma === 'CHUNG' || ma === 'MOI' ? '' : ma, so, nd: ndGui, xong: !!xong, moi });
     NOTE.files = [];
-    if (r.moi) { store.set('la-note-nhap', null); NOTE.nd = ''; NOTE.busy = false; dongP(); toast('Đã mở đơn ' + r.moi.ma + ' (Bid)'); S.moSau = fl.length ? { ma: r.moi.ma, muc: 'hoso' } : r.moi.ma; load(S.code); if (fl.length) guiFileNote(r.moi.ma, fl); return; }
+    if (r.moi) { store.set('la-note-nhap', null); NOTE.nd = ''; NOTE.busy = false; dongP(); toast('Đã mở đơn ' + r.moi.ma + ' (Bid)'); S.moSau = fl.length ? { ma: r.moi.ma, muc: 'qt' } : r.moi.ma; load(S.code); if (fl.length) guiFileNote(r.moi.ma, fl); return; }
     (S.data.notes = S.data.notes || []).unshift(r.note);
     if (r.note.xong) { const o = S.data.orders.find((x) => x.ma === ma), s = o && o.steps.find((x) => x.so === so); if (s) { s.tt = 'Xong'; s.xong = S.data.today; o.daXong = o.steps.filter((x) => x.tt === 'Xong').length; o.cur = o.steps.find((x) => x.tt !== 'Xong') || null; } }
     store.set('la-note-nhap', null); NOTE.nd = ''; NOTE.busy = false;
@@ -1255,7 +1248,7 @@ if ('serviceWorker' in navigator && window.isSecureContext && !window.__MOCK) {
 function moLink(url) { moTB({ link: url }); }
 /* Bấm thông báo (hoặc 1 dòng trong chuông): mở đơn và cuộn tới đúng phần việc.
    Loại lấy từ tag máy chủ gửi: buoc/ngay/note (có tên bước) → mở bước đó trên timeline; giao/han → bước Giao hàng;
-   file → Hồ sơ đơn hàng; tt/moi → Quy trình đơn (chứng từ còn thiếu, nút ＋); note không có bước → Ghi chú nhanh; hop → Xếp file vào đơn. */
+   file, tt/moi → Quy trình đơn (chứng từ còn thiếu, nút ＋); note không có bước → Ghi chú nhanh; hop → Xếp file vào đơn. */
 const MO_KEY = () => new URL('./_mo', location.href).href;
 async function layMoCho() { try { const c = await caches.open('la-tb'), r = await c.match(MO_KEY()); if (!r) return null; const m = await r.json(); c.delete(MO_KEY()); return m && Date.now() - (m.t || 0) < 180000 ? m : null; } catch (e) { return null; } }
 function buocTuChu(nd) {
@@ -1272,7 +1265,7 @@ function dichTB(m) {
   let so = 0;
   if (loai === 'giao' || loai === 'han') so = 8;
   else if (loai === 'buoc' || loai === 'ngay' || loai === 'note') so = buocTuChu(m.nd);
-  const muc = so ? 'tl' : loai === 'file' ? 'hoso' : loai === 'tt' || loai === 'moi' ? 'qt' : '';
+  const muc = so ? 'tl' : loai === 'file' ? 'qt' : loai === 'tt' || loai === 'moi' ? 'qt' : '';
   return { ma, so, muc };
 }
 let MO_DA = 0;
