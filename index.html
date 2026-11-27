@@ -198,6 +198,11 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 .mt{cursor:pointer}.mt.sel span{color:var(--son);font-weight:700;text-decoration:underline;text-underline-offset:3px}
 .bp{margin-top:12px;background:var(--kem);border-radius:12px;padding:10px 12px}.bph{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}.bph b{font-size:14.5px}
 .bpq{font-size:13.5px;line-height:1.45;margin-bottom:4px}.bpb2{margin-top:8px;border:1px solid var(--ke);background:#fff;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:600;color:var(--nhat);cursor:pointer}
+.hgf{margin-top:10px}.hgf label{display:block;font-size:11px;font-weight:700;color:var(--nhat);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.hgr{display:flex;gap:6px;align-items:center}.hgr input{flex:1;min-width:0;min-height:40px;border:1px solid var(--ke);border-radius:10px;padding:6px 8px;background:#fff;font:inherit;font-size:15px;color:var(--muc)}.hgr input[type=time]{flex:0 0 108px}
+.hgs{flex:none;min-height:40px;border:0;border-radius:10px;background:var(--son);color:var(--kem);font-weight:700;padding:0 14px;cursor:pointer}.hgs:disabled{opacity:.6}
+.nhg{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--ke)}.nhg:first-of-type{border-top:0}.nhg .hgf{margin:0;flex:1.3}
+.nhm{flex:1;text-align:left;background:none;border:0;padding:0;font:inherit;font-size:13.5px;font-weight:600;color:var(--muc);cursor:pointer;min-width:0}.nhm small{display:block;font-weight:400;color:var(--nhat);font-size:12px}
 </style>
 </head>
 <body>
@@ -307,7 +312,7 @@ function vLich() {
   <div class="gw">${rows || '<div class="empty">Chưa có đơn có hạn giao.</div>'}<span class="today" style="left:calc(144px + (100% - 144px) * ${(14 / SPAN).toFixed(3)})"></span></div>
   <div class="mut" style="margin-top:8px">Thanh từ ngày nhận đơn tới hạn giao, phần tô son là số bước đã xong. Vạch đen là hôm nay ${dm(t)}.</div></div>
   <div class="card"><h2 style="font-size:17px;margin-bottom:6px">Phải giao trong 7 ngày</h2>${wk.length ? `<table><thead><tr><th>Ngày</th><th>Đơn</th><th>Bước</th></tr></thead><tbody>${wk.map((o) => `<tr><td class="n" style="color:${o.han < t ? '#B3261E' : 'inherit'}">${dm(o.han)}</td><td>${esc(o.ma)}</td><td class="n">${o.cur ? o.cur.so + '/' + o.soBuoc : '—'}</td></tr>`).join('')}</tbody></table>` : '<div class="mut">Không có đơn nào phải giao trong 7 ngày tới.</div>'}</div>
-  ${noHan.length ? `<div class="card"><div class="mut" style="font-weight:600">Chưa có hạn giao (${noHan.length})</div><div style="font-size:13px;margin-top:4px">${noHan.map((o) => esc(o.ma)).join(' · ')}</div></div>` : ''}`;
+  ${noHan.length ? `<div class="card"><div class="mut" style="font-weight:600">Chưa có hạn giao (${noHan.length}) · chọn ngày rồi bấm Lưu</div>${noHan.map((o) => `<div class="nhg"><button class="nhm" data-open="${esc(o.ma)}">${esc(o.ma)}${o.hanText ? `<small>${esc(o.hanText)}</small>` : ''}</button>${hgForm(o, '', true)}</div>`).join('')}</div>` : ''}`;
 }
 
 function vThuChi() {
@@ -405,6 +410,20 @@ function vQT(o) {
 document.addEventListener('toggle', (e) => { const d = e.target; if (d && d.classList && d.classList.contains('gdd')) QT[d.dataset.k] = d.open; }, true);
 /* ---------- Timeline 10 bước: bấm vào bước để xem quy tắc và xác nhận ---------- */
 const BP = { ma: '', so: 0 };
+/* Nhập tay thời gian giao hàng: ghi cột Hạn giao của sổ + hạn bước Giao hàng */
+const hgForm = (o, gio, gon) => `<div class="hgf">${gon ? '' : '<label>Thời gian giao hàng</label>'}<div class="hgr"><input type="date" value="${esc(o.han || '')}" aria-label="Ngày giao ${esc(o.ma)}">${gon ? '' : `<input type="time" value="${esc(gio || '')}" aria-label="Giờ giao">`}<button class="hgs" data-hgl="${esc(o.ma)}">Lưu</button></div></div>`;
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-hgl]'); if (!b) return;
+  const ma = b.dataset.hgl, w = b.closest('.hgr'), ngay = w.querySelector('input[type=date]').value, gEl = w.querySelector('input[type=time]'), gio = gEl ? gEl.value : '';
+  if (!ngay) { alert('Anh chọn ngày giao trước.'); return; }
+  b.disabled = true; b.textContent = 'Đang lưu…';
+  try {
+    await api({ action: 'hangiao', ma, ngay, gio });
+    const o = S.data.orders.find((x) => x.ma === ma);
+    if (o) { o.han = ngay; o.hanText = ''; const s8 = (o.steps || []).find((x) => x.so === 8); if (s8) { s8.hx = ngay; const v = String(s8.viec || '').replace(/^Giao lúc \d{1,2}:\d{2}( · )?/, ''); s8.viec = gio ? 'Giao lúc ' + gio + (v ? ' · ' + v : '') : v; } }
+    render(); load(S.code);
+  } catch (err) { alert('Chưa lưu được: ' + err.message); b.disabled = false; b.textContent = 'Lưu'; }
+});
 function vTL(o) {
   if (!o.steps.length) return '<div class="mut">Đơn chưa có tiến độ trong sổ. Khi đơn chuyển Run, máy chủ tự tạo 10 bước trong vòng 5 phút.</div>';
   const sel = BP.ma === o.ma ? BP.so : 0;
@@ -414,6 +433,7 @@ function vTL(o) {
   const bp = s ? `<div class="bp"><div class="bph"><b>${s.so}. ${esc(STEP[s.so - 1] || s.ten)}</b>${tag(s.tt)}</div>
     <div class="bpq">Xong khi: ${esc(QDB[s.so - 1] || '')}</div>
     <div class="mut">${esc(s.ai || '')}${s.tt === 'Xong' ? ' · xong ' + dm(s.xong) : s.hx ? ' · hạn ' + dm(s.hx) : ' · chưa có hạn'}${s.viec ? ' · ' + esc(s.viec) : ''}</div>
+    ${s.so === 8 ? hgForm(o, (String(s.viec || '').match(/^Giao lúc (\d{1,2}:\d{2})/) || [])[1] || '') : ''}
     ${s.so >= 10 ? '<div class="mut" style="margin-top:6px">Bước này tự chuyển khi đơn Done.</div>' : s.tt === 'Xong' ? `<button class="bpb2" data-bxn="0">Bỏ xác nhận</button>` : `<button class="hgo" data-bxn="1" style="margin-top:8px">✓ Xác nhận đã xong</button>`}</div>` : '<div class="mut" style="margin-top:8px">Bấm vào từng bước để xem khi nào xong và xác nhận.</div>';
   return `<div class="mut" style="font-weight:600;margin-bottom:10px">Sơ đồ ${o.steps.length} bước · xong ${o.daXong}/${o.steps.length}</div><div class="metro">${metro}</div>${bp}`;
 }
