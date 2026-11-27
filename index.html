@@ -560,7 +560,7 @@ function render() {
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.13'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.14'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
@@ -671,7 +671,11 @@ async function guiFile(ma, file, sub, tenMoi, k) {
   const u = { ma, k: k || '', ten: tenMoi || file.name, size: file.size, sent: 0, pct: 0 }; HS.up.push(u); paintHS();
   try {
     let s;
-    try { s = await api({ action: 'gui', ma, ten: tenMoi || file.name, thuMucCon: sub }); }
+    const moPhien = () => api({ action: 'gui', ma, ten: tenMoi || file.name, thuMucCon: sub });
+    try {
+      try { s = await moPhien(); }
+      catch (e0) { if (!laLoiMang(e0)) throw e0; await new Promise((ok) => setTimeout(ok, 1500)); s = await moPhien(); } /* mạng chập chờn / máy chủ chậm: thử lại 1 lần */
+    }
     catch (e) {
       /* 27/11: OneDrive từ chối mở phiên tải lên của lệnh 'gui' (lỗi 400 invalidRequest), trong khi đường Hộp thư đến (phím tắt) vẫn chạy.
          Tạm đi đường vòng: gửi file vào Hộp thư đến rồi xếp ngay vào đơn. Máy chủ sửa xong thì đường chính chạy lại, không vào đây nữa. */
@@ -693,8 +697,9 @@ async function guiFile(ma, file, sub, tenMoi, k) {
       if (file.size === 0) break;
     }
     u.done = true; paintHS(); return u.id || true;
-  } catch (e) { u.err = 'Gửi chưa được: ' + e.message; paintHS(); return false; }
+  } catch (e) { u.err = 'Gửi chưa được: ' + (laLoiMang(e) ? 'mất kết nối, hoặc máy chủ trả lời quá chậm (iPhone chờ tối đa 60 giây). Anh kiểm tra mạng rồi bấm gửi lại.' : e.message); paintHS(); return false; }
 }
+const laLoiMang = (e) => /load failed|failed to fetch|networkerror|network connection was lost/i.test(String((e && e.message) || e));
 const docB64 = (f) => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).replace(/^data:[^,]*,/, '')); r.onerror = () => no(r.error || new Error('Không đọc được file trên máy.')); r.readAsDataURL(f); });
 async function guiQuaHop(ma, file, ten, u) {
   u.pct = 5; paintHS();
