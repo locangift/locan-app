@@ -149,6 +149,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 .sr mark{background:#F6E3B4;color:inherit;border-radius:3px;padding:0 1px}
 .sr .tags{margin-top:4px}
 /* Hồ sơ OneDrive */
+.dkh{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px}.dkh>span{font-size:11px;font-weight:700;color:var(--nhat);text-transform:uppercase;letter-spacing:.05em}.dkh>span small{display:block;text-transform:none;letter-spacing:0;font-weight:500;font-size:11.5px;margin-top:2px}.dkh>b{text-align:right;color:var(--son);font-size:16px;font-weight:800;white-space:nowrap}.dkh>b small{display:block;font-size:10.5px;font-weight:600;color:var(--warn)}.dkls{background:var(--kem);border-radius:12px;padding:2px 11px}.dki{display:flex;gap:10px;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--ke)}.dki:last-child{border-bottom:0}.dkl{min-width:0;flex:1}.dkl b{display:block;font-size:14px;line-height:1.35}.dkl small{display:block;font-size:12.5px;line-height:1.45;color:var(--muc);margin-top:1px}.dkl em{display:inline-block;margin-top:3px;font-style:normal;font-size:11px;font-weight:700;color:var(--run);background:#E8EFF8;border-radius:6px;padding:1px 7px}.dkr{flex:none;text-align:right;font-weight:700;font-size:14px;white-space:nowrap}.dkr small{display:block;font-size:11px;font-weight:500;color:var(--nhat)}.dkr.dkth{color:var(--warn);font-weight:600;font-size:12.5px}.dks{margin-top:6px}.dkn{margin:6px 0 0;font-size:12px;color:var(--warn)}.ctr i{font-style:normal;font-weight:500;font-size:11.5px;color:var(--nhat)}
 .mds{position:fixed;inset:0;z-index:95;background:rgba(30,15,10,.45);display:flex;align-items:flex-end;justify-content:center}.mds[hidden]{display:none}
 .mdsb{background:#fff;width:100%;max-width:560px;max-height:78vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom))}
 .mdsx{border:1px solid var(--ke);background:#fff;border-radius:10px;padding:7px 12px;font-weight:600;color:var(--muc);cursor:pointer}
@@ -419,6 +420,106 @@ function rutGon(o) {
   return r;
 }
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-tqct]'); if (!b || !S.open) return; if (TQ_MO.has(S.open)) TQ_MO.delete(S.open); else TQ_MO.add(S.open); const el = document.getElementById('ttdon'), o = S.data.orders.find((x) => x.ma === S.open); if (el && o) el.innerHTML = vTT(o); });
+/* DTKP gõ bằng chữ (anh Nix 27/11 21:14): ghi chú nhanh của đơn ở bước DTKP, hoặc mở đầu "Dự trù kinh phí"/"DTKP",
+   app tự tách từng khoản, đọc số tiền (500k, 1tr2, 1,5tr, 1.200.000đ, "24 ram x 511.000", "… = 12.264.000"), cộng tổng và trình bày gọn.
+   Số lượng/kích thước (140 tờ, 79 x 109, 33 x 46cm, 4m2m, C150) không bị tính là tiền. */
+const DK_SL = /^\s*(tờ|to\b|cuốn|cuon|cái|cai\b|bộ\b|bo\b|con\b|tem\b|ream|ram\b|kg\b|gsm|g\b|cm|mm|m\b|lượt|luot|bài|bai\b|màu|mau\b|mặt|mat\b|trang|hộp|hop\b|túi|tui\b|tấm|tam\b|chiếc|chiec|x\b|×|\*|%|ngày|ngay\b|người|nguoi|sp\b|pcs|lô\b|lo\b|ly\b|li\b)/i;
+const DK_CHU = /[a-zà-ỹđ]/i;
+function dkSo(raw) { return /^\d{1,3}([.,]\d{3})+$/.test(raw) ? +raw.replace(/[.,]/g, '') : parseFloat(raw.replace(',', '.')); }
+function dkTien(t) {
+  const out = [], re = /\d+(?:[.,]\d+)*/g; let m;
+  while ((m = re.exec(t))) {
+    const raw = m[0], truoc = t.slice(0, m.index), sau = t.slice(m.index + raw.length);
+    if (DK_CHU.test(truoc.slice(-1))) continue; /* dính chữ phía trước: C150, m2, x84 */
+    let v = null, len = raw.length, u;
+    if ((u = sau.match(/^\s*(k|ngàn|nghìn|ngan|nghin)(\d{1,3})?/i)) && !DK_CHU.test(sau.charAt(u[0].length))) { v = dkSo(raw) * 1e3 + (u[2] ? +('0.' + u[2]) * 1e3 : 0); len += u[0].length; }
+    else if ((u = sau.match(/^\s*(tr|triệu|trieu|củ)(\d{1,3})?/i)) && !DK_CHU.test(sau.charAt(u[0].length))) { v = dkSo(raw) * 1e6 + (u[2] ? +('0.' + u[2]) * 1e6 : 0); len += u[0].length; }
+    else if ((u = sau.match(/^\s*(đồng|dong|vnđ|vnd|đ)/i)) && !DK_CHU.test(sau.charAt(u[0].length))) { v = dkSo(raw); len += u[0].length; }
+    else if (!DK_SL.test(sau) && !DK_CHU.test(sau.charAt(0))) { const n = dkSo(raw); if ((/[.,]\d{3}$/.test(raw) && n >= 1000) || n >= 10000) v = n; }
+    if (v != null && v > 0) { out.push({ v: Math.round(v), i: m.index, len }); re.lastIndex = m.index + len; }
+  }
+  return out;
+}
+const dkHoa = (x) => String(x).trim().replace(/\s+/g, ' ').replace(/(^|\s)(\S)/g, (a, b, c) => b + c.toUpperCase());
+function dkDong(t0) {
+  let t = t0.replace(/^\s*[-–•*+·]\s*/, '').trim();
+  if (!t) return null;
+  const ndt = nd(t);
+  if (/^(du tru kinh phi|du tru|dtkp)\b/.test(ndt)) {
+    t = t.replace(/^\s*(dự trù kinh phí|dự trù|du tru kinh phi|du tru|dtkp)\s*(mới|moi)?\s*:?\s*/i, '');
+    if (!t) return null;
+    const tk0 = dkTien(t);
+    if (!/[a-zà-ỹđ]/i.test(t.replace(/\d+(?:[.,]\d+)*\s*(k|tr|triệu|đồng|đ)?/gi, '').replace(/\(.*?\)/g, ''))) return tk0.length ? { tong: tk0[tk0.length - 1].v } : null;
+    return dkDong(t);
+  }
+  const tk = dkTien(t);
+  if (/^(tong|cong)\b/.test(ndt)) return tk.length ? { tong: tk[tk.length - 1].v } : null;
+  let v = null, kieu = '';
+  if (tk.length) {
+    const eq = t.lastIndexOf('='), sauEq = eq >= 0 ? tk.filter((x) => x.i > eq) : [];
+    if (sauEq.length) { v = sauEq[0].v; kieu = 'eq'; }
+    else if (tk.length > 1 && /\+/.test(t)) { v = tk.reduce((a, x) => a + x.v, 0); kieu = 'cong'; }
+    else {
+      const x = tk[tk.length - 1], q = t.slice(0, x.i).match(/(\d+(?:[.,]\d{3})*)\s*(?:[a-zà-ỹđ]+\s*){0,3}[x×*]\s*$/i);
+      if (q) { v = Math.round(dkSo(q[1]) * x.v); kieu = 'nhan'; } else { v = x.v; kieu = tk.length === 1 ? 'mot' : 'cuoi'; }
+    }
+  }
+  /* nơi làm: "tại / ở / bên / xưởng <tên>" đứng riêng (không bắt chữ "ở" trong "trở") */
+  let ncc = '', base = t;
+  const nm = t.match(/(^|\s)(tại|ở|bên|xưởng)\s+([^:;,()\d]+?)(?=\s*(?:[:;,(]|\d|$))/i);
+  if (nm) { ncc = dkHoa(nm[3]); base = t.replace(nm[0], ' '); }
+  let ten, rest;
+  const ci = base.indexOf(':');
+  if (ci > 0) { ten = base.slice(0, ci).trim(); rest = base.slice(ci + 1); }
+  else { const w = base.trim().split(/\s+/); let k = w.findIndex((x) => /\d/.test(x)); if (k < 0) k = w.length; ten = k === 0 ? '' : w.slice(0, k).join(' '); rest = k === 0 ? w.join(' ') : w.slice(k).join(' '); }
+  if (ten.length > 30) { const w = ten.split(/\s+/); let k = w.findIndex((x, n) => n > 0 && /\d/.test(x)); if (k < 1 || k > 4) k = Math.min(3, w.length); rest = w.slice(k).join(' ') + (rest.trim() ? ' · ' + rest : ''); ten = w.slice(0, k).join(' '); }
+  /* bỏ số tiền đã dùng khỏi mô tả (giữ "500 tờ x 1.600đ", "a + b" để còn đọc được) */
+  const tr = dkTien(rest);
+  if (kieu === 'mot' || kieu === 'cuoi') { const x = tr[tr.length - 1]; if (x) rest = rest.slice(0, x.i) + ' ' + rest.slice(x.i + x.len); }
+  else if (kieu === 'eq') { const e = rest.lastIndexOf('='), x = tr.find((y) => y.i > e); if (x) rest = rest.slice(0, e >= 0 ? e : x.i) + ' ' + rest.slice(x.i + x.len); }
+  let dv = '';
+  rest = rest.replace(/\s+/g, ' ').trim();
+  const dvm = rest.match(/^\/\s*([^\s,;·]+)\s*(.*)$/); if (dvm) { dv = dvm[1]; rest = dvm[2]; }
+  const mt = rest.replace(/^[\s:,.;=·-]+|[\s:,.;=·x×*+-]+$/g, '').replace(/\s·\s*$/, '').trim();
+  ten = ten.replace(/[\s:=,.-]+$/, '').trim();
+  return { ten: ten ? ten.charAt(0).toUpperCase() + ten.slice(1) : 'Khoản chi', mt, ncc, v, dv };
+}
+function dkTach(nd0) {
+  const t = String(nd0 || '').replace(/📎[\s\S]*$/, '').trim();
+  let dong = t.split(/\n|;|\s\|\s/).map((x) => x.trim()).filter(Boolean);
+  if (dong.length === 1) { /* 1 dòng: tách theo dấu phẩy / dấu +, khúc không có tiền nhập vào khúc sau */
+    const k = dong[0].split(/,\s+|\s\+\s/), gop = []; let cho = '';
+    k.forEach((x) => { const c = cho ? cho + ', ' + x : x; if (dkTien(x).length) { gop.push(c); cho = ''; } else cho = c; });
+    if (cho) gop.length ? (gop[gop.length - 1] += ', ' + cho) : gop.push(cho);
+    dong = gop;
+  }
+  const items = [], ket = { items, tong: 0, thieu: 0, ghi: null };
+  dong.forEach((x) => { const r = dkDong(x); if (!r) return; if (r.tong != null && r.ten == null) { ket.ghi = r.tong; return; } items.push(r); });
+  items.forEach((x) => { if (x.v == null) ket.thieu++; else ket.tong += x.v; });
+  return ket;
+}
+function dtkpGhiChu(o) {
+  const L = notesCua(o.ma).filter((n) => n.so === 2 || /^\s*(du tru|dtkp)/.test(nd(n.nd)) || /du tru kinh phi/.test(nd(n.nd)));
+  for (const n of L) { const k = dkTach(n.nd); if (k.items.some((x) => x.v != null) || k.ghi) return Object.assign(k, { n, soBan: L.length }); }
+  return null;
+}
+function bgCua(o) { const a = (S.data && S.data.bg) || {}; return a[o.ma] || a[Object.keys(a).find((k) => k.toLowerCase() === String(o.ma).toLowerCase())]; }
+function vDTKP(o, K) {
+  const B = bgCua(o), co = B && B.items ? B.items.filter((x) => x.cong && x.tt != null) : [], dtTruoc = co.reduce((a, x) => a + x.tt, 0);
+  const rows = K.items.map((x) => `<div class="dki"><div class="dkl"><b>${esc(x.ten)}</b>${x.mt ? `<small>${esc(x.mt)}</small>` : ''}${x.ncc ? `<em>${esc(x.ncc)}</em>` : ''}</div><div class="dkr${x.v == null ? ' dkth' : ''}">${x.v == null ? 'chưa có giá' : vnd(x.v) + (x.dv ? `<small>/ ${esc(x.dv)}</small>` : '')}</div></div>`).join('');
+  const r = (a, b, c) => `<div class="ctr${c ? ' ' + c : ''}"><span>${a}</span><b>${b}</b></div>`;
+  const thieu = K.items.filter((x) => x.v == null).map((x) => x.ten);
+  let sum = r('Tổng dự trù' + (K.thieu ? '*' : ''), vnd(K.tong), 'tc');
+  if (K.ghi && Math.abs(K.ghi - K.tong) > 1000) sum += r('Tổng ghi trong ghi chú', vnd(K.ghi), 'wn');
+  const dt = dtTruoc || o.dt;
+  if (dt > 0 && K.tong > 0) { const lai = dt - K.tong; sum += r(dtTruoc ? 'Doanh thu chưa VAT' : 'Doanh thu dự kiến (sổ)', vnd(dt)) + r('Lãi dự kiến' + (K.thieu ? '*' : '') + ` <i>${Math.round(lai / dt * 100)}%</i>`, vnd(lai), lai >= 0 ? 'ok' : 'no'); }
+  if (o.dtkp > 0 && Math.abs(o.dtkp - K.tong) > 1000) sum += r('Sổ thu chi đang ghi DTKP', vnd(o.dtkp), 'wn');
+  if (thieu.length) sum += `<p class="dkn">* Chưa tính ${thieu.length} khoản chưa có giá: ${esc(thieu.join(', '))}.</p>`;
+  const n = K.n;
+  return `<div class="dkh"><span>Dự trù kinh phí<small>${esc(n.ai || '')} · ${esc(n.t || '')} · từ ghi chú${K.soBan > 1 ? ` (bản mới nhất / ${K.soBan})` : ''}</small></span><b>${vnd(K.tong)}${K.thieu ? `<small>+ ${K.thieu} khoản chưa có giá</small>` : ''}</b></div><div class="dkls">${rows}</div><div class="dks">${sum}</div>`;
+}
+function moDTKP() { const o = S.open && S.data.orders.find((x) => x.ma === S.open); if (!o || !dtkpGhiChu(o)) return; moMDS('__dtkp'); }
+document.addEventListener('click', (e) => { if (e.target.closest('[data-dtkp]')) moDTKP(); });
 /* Tổng quan đơn (27/11): lấy từ tab "Báo giá" (S.data.bg[mã đơn]); chưa có báo giá thì rút gọn từ ghi chú sổ. */
 const soVN = (n) => n == null ? '' : (+n).toLocaleString('vi-VN', { maximumFractionDigits: 2 });
 const TQ_MO = new Set(); /* đơn đang mở phần Chi tiết của Tổng quan */
@@ -490,7 +591,8 @@ function vCT(o, B, r, t) {
   }
   const anhHtml = typeof anh === 'string' ? anh : anh.html, anhN = typeof anh === 'string' ? '' : anh.n ? anh.n + ' ảnh' : '';
   const gc = o.ghiChu ? String(o.ghiChu).split(/\s\|\s/).map((p) => `<p>${esc(p.trim())}</p>`).join('') : '';
-  return sec('Hàng hoá', hang, t.coBG ? B.items.length + ' mục' : '') + sec('Tiền', tien) + sec('Giao hàng', giao) + sec('Thanh toán', tt) + sec('Hình ảnh', anhHtml, anhN) +
+  const DK = dtkpGhiChu(o);
+  return sec('Hàng hoá', hang, t.coBG ? B.items.length + ' mục' : '') + sec('Tiền', tien) + (DK ? `<section class="cts">${vDTKP(o, DK)}</section>` : '') + sec('Giao hàng', giao) + sec('Thanh toán', tt) + sec('Hình ảnh', anhHtml, anhN) +
     (gc ? `<details class="ctgc"><summary>Ghi chú trong sổ</summary>${gc}</details>` : '') + (B && B.nguon ? `<div class="ctsrc">Nguồn: ${esc(B.nguon)}</div>` : '');
 }
 /* ---------- Quy trình 4 giai đoạn (chốt 26/11/2026): Bid → Run → Giao hàng → Done ---------- */
@@ -501,7 +603,8 @@ function vQT(o) {
   const idx = GD.indexOf(o.tt), fail = o.tt === 'Failed', h = o.hoSo || {};
   if (HS.ma !== o.ma) setTimeout(() => hsLoad(o.ma), 0);
   const L = HS.ma === o.ma && HS.d ? locHoSo(HS.d.files) : null;
-  const f = (k, sheet) => sheet ? true : L ? L.some((x) => x.k === k) : null;
+  const DK = dtkpGhiChu(o);
+  const f = (k, sheet) => sheet ? true : L && L.some((x) => x.k === k) ? true : k === 'dtkp' && DK ? true : L ? false : null;
   const D = {
     Bid: [['Báo giá', f('bg'), 1, 'bg'], ['Dự trù kinh phí (DTKP)', f('dtkp', h.dtkp), 1, 'dtkp'], ['File khách gửi', f('kh'), 1, 'kh'], ['Ảnh mẫu / phối cảnh', f('mau'), 0, 'mau']],
     Run: [['Chứng từ chốt (PO, hợp đồng, chuyển khoản…)', f('hd', h.chot), 1, 'hd'], ['Lệnh sản xuất', f('lsx', h.lsx), 1, 'lsx'], ['File sản xuất (file in, file khuôn)', f('fsx'), 1, 'fsx']],
@@ -515,9 +618,9 @@ function vQT(o) {
   const conThem = (k, v) => k === 'fsx' && v === true && !fsxDu;
   /* Đã có file: nút "Mở" (1 file mở luôn; nhiều file → "Mở (n)" mở khung nổi liệt kê file cùng loại) */
   const fsOf = (k) => (k && L ? L.filter((x) => x.k === k) : []);
-  const mo = (k) => { const fs = fsOf(k); if (!fs.length) return ''; if (fs.length > 1) return `<button class="qmo" data-qmo="${k}">Mở (${fs.length})</button>`; const x = fs[0]; return `<button class="qmo" ${/^image\//.test(x.loai || '') ? 'data-fview' : 'data-fopen'}="${esc(x.id)}" aria-label="Mở ${esc(x.ten)}">Mở</button>`; };
+  const mo = (k) => { const fs = fsOf(k), xdk = k === 'dtkp' && DK ? `<button class="qmo" data-dtkp aria-label="Xem dự trù kinh phí">${fs.length ? 'Bảng' : 'Xem'}</button>` : ''; if (!fs.length) return xdk; if (xdk) return (fs.length > 1 ? `<button class="qmo" data-qmo="${k}">Mở (${fs.length})</button>` : `<button class="qmo" ${/^image\//.test(fs[0].loai || '') ? 'data-fview' : 'data-fopen'}="${esc(fs[0].id)}">Mở</button>`) + xdk; if (fs.length > 1) return `<button class="qmo" data-qmo="${k}">Mở (${fs.length})</button>`; const x = fs[0]; return `<button class="qmo" ${/^image\//.test(x.loai || '') ? 'data-fview' : 'data-fopen'}="${esc(x.id)}" aria-label="Mở ${esc(x.ten)}">Mở</button>`; };
   const cong = (ten, v, k) => !k || (v === true && !conThem(k, v)) || fail ? '' : dangGui(k) ? `<span class="qup on">đang gửi ${dangGui(k).pct || 0}%</span>` : `<button class="qup" data-qup="${k}" aria-label="Gửi file ${esc(ten)}">＋</button>`;
-  const row = ([ten, v, bb, k]) => { const [c, s] = em(v, bb), m = mo(k); return `<div class="ck"><em class="${c}">${s}</em><span>${esc(ten)}${conThem(k, v) ? '<small class="ckt">gửi thêm được tới khi đủ file</small>' : ''}</span>${m ? '' : `<small>${v === 'cho' ? 'nút duyệt sắp có' : bb ? 'bắt buộc' : 'không bắt buộc'}</small>`}${m}${cong(ten, v, k)}</div>`; };
+  const row = ([ten, v, bb, k]) => { const [c, s] = em(v, bb), m = mo(k); return `<div class="ck"><em class="${c}">${s}</em><span>${esc(ten)}${conThem(k, v) ? '<small class="ckt">gửi thêm được tới khi đủ file</small>' : ''}${k === 'dtkp' && DK ? `<small class="ckt">từ ghi chú · ${vnd(DK.tong)}${DK.thieu ? ' + ' + DK.thieu + ' khoản chưa có giá' : ''}</small>` : ''}</span>${m ? '' : `<small>${v === 'cho' ? 'nút duyệt sắp có' : bb ? 'bắt buộc' : 'không bắt buộc'}</small>`}${m}${cong(ten, v, k)}</div>`; };
   const step = (s) => { const c = s.tt === 'Xong' ? '#2F7A4B' : s.tt === 'Trễ' ? '#B3261E' : s.tt === 'Đang làm' ? '#2B5F9E' : '#D9CFC0'; return `<div class="sl"><i style="background:${c}"></i><b>${esc(s.ten.replace(/^\d+\.\s*/, ''))}</b><span class="tag ${s.tt === 'Xong' ? 't-ok' : s.tt === 'Trễ' ? 't-bad' : s.tt === 'Đang làm' ? 't-run' : 't-idle'}">${esc(s.tt)}</span><small>${esc(s.ai)} · ${s.tt === 'Xong' ? 'xong ' + dm(s.xong) : 'hạn ' + dm(s.hx)}${s.viec ? ' · ' + esc(s.viec) : ''}</small></div>`; };
   const pill = GD.map((g, i) => { const c = fail ? 'f' : i < idx ? 'x' : i === idx ? 'c' : ''; return `<div class="gd ${c}"><i>${c === 'x' ? '✓' : i + 1}</i><span>${g}</span></div>`; }).join('');
   const sec = GD.map((g, i) => {
@@ -657,7 +760,7 @@ function render() {
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.28'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.29'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
@@ -751,6 +854,7 @@ function vBanCu() {
 }
 const MDS = { k: '' };
 function vMDS() {
+  if (MDS.k === '__dtkp') { const o = S.open && S.data.orders.find((x) => x.ma === S.open), K = o && dtkpGhiChu(o); return `<div class="mdsb" role="dialog" aria-label="Dự trù kinh phí"><div class="hh2"><b>${esc(o ? o.ma : '')}</b><button class="mdsx" data-mdsx>Đóng</button></div>${K ? vDTKP(o, K) : '<div class="mut">Không còn ghi chú DTKP.</div>'}</div>`; }
   const L = S.open && HS.ma === S.open && HS.d ? locHoSo(HS.d.files).filter((f) => f.k === MDS.k) : [];
   const ten = (LOAI.find((l) => l[0] === MDS.k) || [, ''])[1];
   return `<div class="mdsb" role="dialog" aria-label="${esc(ten)}"><div class="hh2"><b>${esc(ten)} (${L.length})</b><button class="mdsx" data-mdsx>Đóng</button></div>${L.length ? L.map(rowFile).join('') : '<div class="mut" style="padding:10px 0">Không còn file nào.</div>'}<button class="upb" data-qup="${MDS.k}" style="margin-top:12px">＋ Gửi thêm file</button></div>`;
