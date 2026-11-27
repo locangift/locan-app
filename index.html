@@ -86,7 +86,7 @@ td{padding:8px 4px 8px 0;border-bottom:1px solid var(--nga);vertical-align:top}t
 .sheet{position:fixed;inset:0;top:calc(env(safe-area-inset-top) + 22px);z-index:40;background:var(--kem);overflow-y:auto;-webkit-overflow-scrolling:touch}
 @keyframes nhay{0%,45%{box-shadow:0 0 0 3px var(--vang)}100%{box-shadow:0 0 0 0 transparent}}.nhay{animation:nhay 2.6s ease-out}
 .sh{position:sticky;top:0;z-index:2;background:var(--son);color:var(--kem);display:flex;gap:10px;align-items:center;padding:calc(10px + env(safe-area-inset-top)) 14px 10px}
-.sh.shd{flex-wrap:wrap;gap:8px 10px;padding:14px 14px 12px}.sbbar{position:fixed;left:0;right:0;top:0;height:calc(env(safe-area-inset-top) + 22px);background:var(--son);z-index:41}.shd .back,.shd .ib{width:38px;height:38px}.shd .th.s44{width:40px;height:40px}.shm{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.shm b{font-size:18px;font-weight:700;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.shm span{font-size:12px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.shp{flex-basis:100%;margin:0;padding:8px 2px 0;border-top:1px solid rgba(247,242,233,.22);font-size:13px;line-height:1.45;opacity:.95;text-wrap:balance;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sh.shd{flex-wrap:wrap;gap:8px 10px;padding:14px 14px 12px}.sbbar{position:fixed;left:0;right:0;top:0;height:calc(env(safe-area-inset-top) + 22px);background:var(--son);z-index:41}.shd .back,.shd .ib{width:38px;height:38px}.shd .th.s44{width:40px;height:40px}.shm{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.shm b{font-size:18px;font-weight:700;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.shm .shs{display:flex;align-items:center;gap:7px;min-width:0}.shs i{font-style:normal;font-size:12.5px;opacity:.88;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.shs .tag{flex:none;font-style:normal;font-size:11px;padding:1px 8px;line-height:1.5}.shp{flex-basis:100%;margin:0;padding:8px 2px 0;border-top:1px solid rgba(247,242,233,.22);font-size:13px;line-height:1.45;opacity:.95;text-wrap:balance;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .back{width:44px;height:44px;border-radius:22px;border:0;background:var(--kem);color:var(--son);display:grid;place-items:center;cursor:pointer;flex:none}
 .metro{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));row-gap:12px}
 .mt{display:flex;flex-direction:column;align-items:center;gap:4px;position:relative}
@@ -646,6 +646,8 @@ document.addEventListener('click', (e) => {
 });
 /* Tổng quan đơn (27/11): lấy từ tab "Báo giá" (S.data.bg[mã đơn]); chưa có báo giá thì rút gọn từ ghi chú sổ. */
 const soVN = (n) => n == null ? '' : (+n).toLocaleString('vi-VN', { maximumFractionDigits: 2 });
+/* Còn phải thu: theo sổ; sổ ghi 0 mà chưa thu đồng nào (đơn Bid) thì lấy tổng báo giá/doanh thu trừ đã thu (22:54 anh Nix: "0đ mà đủ cái gì?") */
+const conThu = (o, tc) => o.phaiThu > 0 ? o.phaiThu : o.daThu > 0 ? 0 : Math.max(0, tc || o.dt || 0);
 const TQ_MO = new Set(); /* đơn đang mở phần Chi tiết của Tổng quan */
 const TQ_GON = new Set(); /* 27/11 22:31 anh Nix: Tổng quan đơn hàng luôn mở sẵn mỗi lần vào đơn; Thu gọn chỉ áp dụng lúc đang xem đơn đó */
 try { store.set('la-tq-gon', null); } catch (e) {}
@@ -662,7 +664,7 @@ function vTT(o) {
   /* --- phần gọn --- */
   let hang, tong = '', lech = '';
   if (coBG) {
-    hang = B.items.map((x) => dong(esc(x.hh || 'Hàng hoá') + (x.cong ? '' : ' <em>không cộng</em>'), x.sl != null ? esc(soVN(x.sl) + (x.dg != null ? ' × ' + soVN(x.dg) : ' ' + (x.dvt || ''))) : '', x.tt != null ? gon(x.tt) : '–', !x.cong)).join('');
+    hang = B.items.map((x) => dong(esc(x.hh || 'Hàng hoá') + ':' + (x.cong ? '' : ' <em>không cộng</em>'), x.sl != null ? esc(soVN(x.sl) + (x.dvt ? ' ' + x.dvt : '') + (x.dg != null ? ' × ' + soVN(x.dg) + 'đ' + (x.vat === 0 ? '' : ' (chưa VAT)') : '')) : '', x.tt != null ? gon(x.tt) : '–', !x.cong)).join('');
     if (co.length) {
       const lb = chuaRo ? 'chưa VAT' : vs ? 'gồm VAT' + (ks.length === 1 ? ' ' + soVN(+ks[0]) + '%' : '') : 'không VAT';
       if (!chuaRo && o.dt > 0 && Math.abs(tc - o.dt) > 1000) lech = `<div class="tql">⚠ Sổ thu chi ghi ${vnd(o.dt)}</div>`;
@@ -673,7 +675,7 @@ function vTT(o) {
     hang = dong(esc(o.sp || o.ma), esc([r.sl, r.cl[0], r.gc.slice(0, 2).join(', ')].filter(Boolean).join(' · ')), '');
   }
   const han = o.han ? dm(o.han) : o.hanText;
-  const cuoi = [`Giao <b>${han ? esc(han) : 'chưa có'}</b>`, o.dt > 0 || o.daThu > 0 ? `Đã thu <b>${gon(o.daThu)}</b>` : '', o.dt > 0 ? (o.phaiThu > 0 ? `Còn <b class="no">${gon(o.phaiThu)}</b>` : '<b class="ok">Thu đủ</b>') : ''].filter(Boolean).join(' · ');
+  const cuoi = [`Giao <b>${han ? esc(han) : 'chưa có'}</b>`, o.dt > 0 || o.daThu > 0 ? `Đã thu <b>${gon(o.daThu)}</b>` : '', o.dt > 0 ? (conThu(o, tc) > 0 ? `Còn <b class="no">${gon(conThu(o, tc))}</b>` : o.daThu > 0 ? '<b class="ok">Thu đủ</b>' : '') : ''].filter(Boolean).join(' · ');
   const mo = TQ_MO.has(o.ma), tqGon = TQ_GON.has(o.ma);
   const dau = `<div class="tqh"><span class="hlab">Tổng quan đơn hàng${coBG ? '' : '<span>chưa có báo giá</span>'}</span><span class="tqr">${tong}<button class="tqg" data-tqgon aria-expanded="${!tqGon}">${tqGon ? 'Mở ▾' : 'Thu gọn ▴'}</button></span></div>`;
   if (tqGon) return `${dau}<div class="tqf"><span>${cuoi}</span></div>`;
@@ -699,7 +701,7 @@ function vCT(o, B, r, t) {
     tien += row(t.chuaRo ? 'Tổng (chưa gồm VAT)' : 'Tổng cộng', vnd(t.tc), 'tc');
   }
   if (o.dt > 0 && (!t.co.length || Math.abs(t.tc - o.dt) > 1000)) tien += row('Doanh thu dự kiến (sổ)', vnd(o.dt), t.co.length ? 'wn' : 'tc');
-  if (o.dt > 0 || o.daThu > 0) { tien += row('Đã thu', vnd(o.daThu), o.daThu > 0 ? 'ok' : ''); if (o.dt > 0) tien += row('Còn phải thu', o.phaiThu > 0 ? vnd(o.phaiThu) : 'Thu đủ ✓', o.phaiThu > 0 ? 'no' : 'ok'); }
+  if (o.dt > 0 || o.daThu > 0) { tien += row('Đã thu', vnd(o.daThu), o.daThu > 0 ? 'ok' : ''); if (o.dt > 0) { const c = conThu(o, t.tc); tien += row('Còn phải thu', c > 0 ? vnd(c) : o.daThu > 0 ? 'Thu đủ ✓' : '–', c > 0 ? 'no' : 'ok'); } }
   /* Giao hàng, thanh toán */
   const hanDay = o.han ? dm(o.han) + '/' + o.han.slice(0, 4) : (o.hanText || '');
   const giaoTxt = (B && B.giao) || (r.giao ? 'Giao tại ' + r.giao : '');
@@ -883,9 +885,8 @@ window.addEventListener('resize', vuaChu);
 function vChiTiet(o) {
   const [dl, dc] = due(o), t = S.data.today;
   const bar = (lab, a, b, col) => `<div style="margin-top:8px"><div class="lt" style="display:flex;justify-content:space-between;font-size:12.5px"><span style="font-weight:600">${lab}</span><span><b>${tr(a)}</b> / ${tr(b)}</span></div><div class="trk" style="height:12px;margin-top:3px"><i style="width:${b ? Math.min(100, Math.round(a / b * 100)) : 0}%;background:${col}"></i></div></div>`;
-  return `<div class="sh shd"><button class="back" data-close aria-label="Quay lại"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>${thumb(o, 's44')}<div class="shm"><b class="ser" data-fit>${esc(o.ma)}</b>${tomTatSp(o.sp) ? `<span>${esc(tomTatSp(o.sp))}</span>` : ''}</div><button class="ib ${S.busy ? 'spin' : ''}" data-reload aria-label="Làm mới" style="margin-left:auto;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></button></div>
+  return `<div class="sh shd"><button class="back" data-close aria-label="Quay lại"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>${thumb(o, 's44')}<div class="shm"><b class="ser" data-fit>${esc(o.ma)}</b><span class="shs">${tomTatSp(o.sp) ? `<i>${esc(tomTatSp(o.sp))}</i>` : ''}<em class="tag ${ttCls(o)}">${esc(o.tt)}</em></span></div><button class="ib ${S.busy ? 'spin' : ''}" data-reload aria-label="Làm mới" style="margin-left:auto;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></button></div>
   <main style="padding-bottom:40px">
-  <div class="tags" style="margin-bottom:10px"><span class="tag ${ttCls(o)}">${esc(o.tt)}</span><span class="tag ${dc}">${esc(dl)}</span>${o.cur && o.tt === 'Run' ? `<span class="tag">Chờ ${esc(o.cur.ai)}</span>` : ''}${o.canhBao && o.canhBao !== 'OK' ? `<span class="tag t-bad">${esc(o.canhBao)}</span>` : ''}</div>
   <div class="card" id="ttdon">${vTT(o)}</div>
   <div class="card" id="tl">${vTL(o)}</div>
   <div class="card" id="qt">${vQT(o)}</div>
@@ -917,7 +918,7 @@ function render() {
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.39'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.40'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
