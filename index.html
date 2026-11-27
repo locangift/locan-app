@@ -22,7 +22,7 @@
 html,body{margin:0;background:var(--kem);color:var(--muc);font:15px/1.45 "Be Vietnam Pro",system-ui,sans-serif;-webkit-text-size-adjust:100%}
 button,input{font:inherit;color:inherit}
 .ser{font-family:Spectral,Georgia,serif}
-header{position:sticky;top:0;z-index:20;background:var(--son);color:var(--kem);padding:calc(12px + env(safe-area-inset-top)) 16px 14px}
+header{position:sticky;top:0;z-index:20;background:var(--son);color:var(--kem);padding:calc(34px + env(safe-area-inset-top)) 16px 14px}
 .hr{display:flex;justify-content:space-between;align-items:center;gap:10px;max-width:720px;margin:0 auto}
 .brand{font-family:Spectral,serif;font-size:21px;font-weight:700;letter-spacing:.4px}
 .sub{font-size:12.5px;opacity:.9}
@@ -120,7 +120,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 .sbtn svg{flex:none;color:var(--son)}
 .sov{position:fixed;inset:0;z-index:90;background:var(--kem);display:flex;flex-direction:column}
 .sov[hidden]{display:none}
-.stop{background:var(--son);padding:calc(10px + env(safe-area-inset-top)) 12px 12px;display:flex;gap:8px;align-items:center}
+.stop{background:var(--son);padding:calc(32px + env(safe-area-inset-top)) 12px 12px;display:flex;gap:8px;align-items:center}
 .sbox{flex:1;display:flex;align-items:center;gap:8px;background:#fff;border-radius:12px;padding:0 12px}
 .sbox input{flex:1;border:0;outline:0;font-size:17px;padding:12px 0;background:transparent;min-width:0}
 .sbox button{border:0;background:var(--nga);width:26px;height:26px;border-radius:13px;font-size:14px;color:var(--muc)}
@@ -172,10 +172,10 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 .grp{font-size:11.5px;font-weight:700;color:var(--nhat);text-transform:uppercase;letter-spacing:.04em;margin:12px 0 2px}
 .lbx{position:fixed;inset:0;z-index:120;background:rgba(20,16,14,.92);display:grid;place-items:center;padding:20px}
 .lbx img{max-width:100%;max-height:80vh;border-radius:10px;background:#fff}
-.lbx button{position:absolute;top:calc(14px + env(safe-area-inset-top));right:14px;width:42px;height:42px;border-radius:21px;border:0;background:var(--kem);font-size:18px}
+.lbx button{position:absolute;top:calc(36px + env(safe-area-inset-top));right:14px;width:42px;height:42px;border-radius:21px;border:0;background:var(--kem);font-size:18px}
 /* Xem file ngay trong app (27/11 22:20): PDF, Excel, Word/PowerPoint; không nhảy sang link tải OneDrive */
 .xem{position:fixed;inset:0;z-index:115;background:#3B3633;display:flex;flex-direction:column}.xem[hidden]{display:none}
-.xemh{flex:none;display:flex;align-items:center;gap:6px;padding:calc(8px + env(safe-area-inset-top)) 8px 8px;background:var(--son2);color:var(--kem)}
+.xemh{flex:none;display:flex;align-items:center;gap:6px;padding:calc(30px + env(safe-area-inset-top)) 8px 8px;background:var(--son2);color:var(--kem)}
 .xemh b{flex:1;min-width:0;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .xemh button{flex:none;border:0;border-radius:10px;background:rgba(247,242,233,.16);color:var(--kem);font:inherit;font-size:15px;font-weight:700;min-width:40px;height:38px;padding:0 10px;cursor:pointer}.xemh button[hidden]{display:none}
 .xemb{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;padding:10px 0 calc(16px + env(safe-area-inset-bottom))}
@@ -260,7 +260,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 .nhg{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--ke)}.nhg:first-of-type{border-top:0}.nhg .hgf{margin:0;flex:1.3}
 .nhm{flex:1;text-align:left;background:none;border:0;padding:0;font:inherit;font-size:13.5px;font-weight:600;color:var(--muc);cursor:pointer;min-width:0}.nhm small{display:block;font-weight:400;color:var(--nhat);font-size:12px}
 .ib.spin svg{animation:xoay .8s linear infinite}@keyframes xoay{to{transform:rotate(360deg)}}
-#toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translate(-50%,-20px);opacity:0;pointer-events:none;background:var(--muc);color:var(--kem);padding:10px 16px;border-radius:999px;font-size:14px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.25);transition:opacity .2s,transform .2s;z-index:120;white-space:nowrap}
+#toast{position:fixed;left:50%;top:calc(36px + env(safe-area-inset-top));transform:translate(-50%,-20px);opacity:0;pointer-events:none;background:var(--muc);color:var(--kem);padding:10px 16px;border-radius:999px;font-size:14px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.25);transition:opacity .2s,transform .2s;z-index:120;white-space:nowrap}
 #toast.show{opacity:1;transform:translate(-50%,0)}
 </style>
 </head>
@@ -917,7 +917,7 @@ function render() {
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.38'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.39'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
