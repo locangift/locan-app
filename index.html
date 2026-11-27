@@ -201,6 +201,8 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 .ck em{flex:none;width:22px;height:22px;border-radius:11px;display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:700}
 .ck em.y{background:var(--okb);color:var(--ok)}.ck em.n{background:var(--badb);color:var(--bad)}.ck em.o,.ck em.u{background:var(--nga);color:var(--nhat)}
 .ck span{flex:1;line-height:1.35}.ck small{font-size:11px;color:var(--nhat);white-space:nowrap}
+.qup{flex:none;width:32px;height:32px;margin-left:2px;border-radius:16px;border:1.5px solid var(--son);background:#fff;color:var(--son);display:grid;place-items:center;font-size:20px;font-weight:700;line-height:1;cursor:pointer}.qup input{display:none}
+.qup.on{border-color:var(--ke);color:var(--nhat);font-size:11px;font-weight:600;width:auto;padding:0 8px}
 .gsub{font-size:11px;font-weight:700;color:var(--nhat);text-transform:uppercase;letter-spacing:.04em;margin:8px 0 2px 18px}
 .gdd .sl{margin-left:18px}
 .mt{cursor:pointer}.mt.sel span{color:var(--son);font-weight:700;text-decoration:underline;text-underline-offset:3px}
@@ -400,13 +402,15 @@ function vQT(o) {
   const L = HS.ma === o.ma && HS.d ? locHoSo(HS.d.files) : null;
   const f = (k, sheet) => sheet ? true : L ? L.some((x) => x.k === k) : null;
   const D = {
-    Bid: [['Báo giá', f('bg'), 1], ['Dự trù kinh phí (DTKP)', f('dtkp', h.dtkp), 1], ['File khách gửi', f('kh'), 1], ['Ảnh mẫu / phối cảnh', f('mau'), 0]],
-    Run: [['Chứng từ chốt (PO, hợp đồng, chuyển khoản…)', f('hd', h.chot), 1], ['Lệnh sản xuất', f('lsx', h.lsx), 1], ['File sản xuất (file in, file khuôn)', f('fsx'), 1]],
-    'Giao hàng': [['Ảnh thực tế sản phẩm', f('anh'), 1], ['Phiếu giao, đề nghị TT, biên bản NT, HĐ nháp', f('gh'), 0]],
-    Done: [['Chứng từ nhận tiền', f('nt', h.phieu), 1], ['Hóa đơn đã ký / xác nhận hoàn tất', f('hdk', h.phieu), 1], ['Thu đủ tiền khách', o.dt > 0 ? !(o.phaiThu > 0) && o.daThu > 0 : false, 1], ['Trả đủ nhà cung cấp', !(o.conChi > 0), 1], ['3 người duyệt: Nix, Trung, Tâm', 'cho', 1]]
+    Bid: [['Báo giá', f('bg'), 1, 'bg'], ['Dự trù kinh phí (DTKP)', f('dtkp', h.dtkp), 1, 'dtkp'], ['File khách gửi', f('kh'), 1, 'kh'], ['Ảnh mẫu / phối cảnh', f('mau'), 0, 'mau']],
+    Run: [['Chứng từ chốt (PO, hợp đồng, chuyển khoản…)', f('hd', h.chot), 1, 'hd'], ['Lệnh sản xuất', f('lsx', h.lsx), 1, 'lsx'], ['File sản xuất (file in, file khuôn)', f('fsx'), 1, 'fsx']],
+    'Giao hàng': [['Ảnh thực tế sản phẩm', f('anh'), 1, 'anh'], ['Phiếu giao, đề nghị TT, biên bản NT, HĐ nháp', f('gh'), 0, 'gh']],
+    Done: [['Chứng từ nhận tiền', f('nt', h.phieu), 1, 'nt'], ['Hóa đơn đã ký / xác nhận hoàn tất', f('hdk', h.phieu), 1, 'hdk'], ['Thu đủ tiền khách', o.dt > 0 ? !(o.phaiThu > 0) && o.daThu > 0 : false, 1], ['Trả đủ nhà cung cấp', !(o.conChi > 0), 1], ['3 người duyệt: Nix, Trung, Tâm', 'cho', 1]]
   };
   const em = (v, bb) => v === true ? ['y', '✓'] : v === 'cho' ? ['o', '○'] : v === false ? (bb ? ['n', '✕'] : ['o', '○']) : ['u', '…'];
-  const row = ([ten, v, bb]) => { const [c, s] = em(v, bb); return `<div class="ck"><em class="${c}">${s}</em><span>${esc(ten)}</span><small>${v === 'cho' ? 'nút duyệt sắp có' : bb ? 'bắt buộc' : 'không bắt buộc'}</small></div>`; };
+  const dangGui = (k) => HS.up.some((u) => u.ma === o.ma && u.k === k && !u.done && !u.err);
+  const cong = (ten, v, k) => !k || v === true || fail ? '' : dangGui(k) ? '<span class="qup on">đang gửi…</span>' : `<label class="qup" aria-label="Gửi file ${esc(ten)}">＋<input type="file" multiple data-qup="${k}"></label>`;
+  const row = ([ten, v, bb, k]) => { const [c, s] = em(v, bb); return `<div class="ck"><em class="${c}">${s}</em><span>${esc(ten)}</span><small>${v === 'cho' ? 'nút duyệt sắp có' : bb ? 'bắt buộc' : 'không bắt buộc'}</small>${cong(ten, v, k)}</div>`; };
   const step = (s) => { const c = s.tt === 'Xong' ? '#2F7A4B' : s.tt === 'Trễ' ? '#B3261E' : s.tt === 'Đang làm' ? '#2B5F9E' : '#D9CFC0'; return `<div class="sl"><i style="background:${c}"></i><b>${esc(s.ten.replace(/^\d+\.\s*/, ''))}</b><span class="tag ${s.tt === 'Xong' ? 't-ok' : s.tt === 'Trễ' ? 't-bad' : s.tt === 'Đang làm' ? 't-run' : 't-idle'}">${esc(s.tt)}</span><small>${esc(s.ai)} · ${s.tt === 'Xong' ? 'xong ' + dm(s.xong) : 'hạn ' + dm(s.hx)}${s.viec ? ' · ' + esc(s.viec) : ''}</small></div>`; };
   const pill = GD.map((g, i) => { const c = fail ? 'f' : i < idx ? 'x' : i === idx ? 'c' : ''; return `<div class="gd ${c}"><i>${c === 'x' ? '✓' : i + 1}</i><span>${g}</span></div>`; }).join('');
   const sec = GD.map((g, i) => {
@@ -510,7 +514,7 @@ function render() {
   paintNoteBtn();
 }
 
-const APP_VER = '2026-11-27.3'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.4'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
@@ -617,8 +621,8 @@ function vHoSo(o) {
 }
 function paintHS() { const el = document.getElementById('hoso'); const o = S.open && S.data && S.data.orders.find((x) => x.ma === S.open); if (el && o) el.innerHTML = vHoSo(o); const q = document.getElementById('qt'); if (q && o) q.innerHTML = vQT(o); }
 const CHUNK = 327680 * 16; // 5 MB, bội số 320 KB theo yêu cầu OneDrive
-async function guiFile(ma, file, sub, tenMoi) {
-  const u = { ma, ten: tenMoi || file.name, size: file.size, sent: 0, pct: 0 }; HS.up.push(u); paintHS();
+async function guiFile(ma, file, sub, tenMoi, k) {
+  const u = { ma, k: k || '', ten: tenMoi || file.name, size: file.size, sent: 0, pct: 0 }; HS.up.push(u); paintHS();
   try {
     const s = await api({ action: 'gui', ma, ten: tenMoi || file.name, thuMucCon: sub });
     for (let i = 0; i < file.size || (i === 0 && file.size === 0); i += CHUNK) {
@@ -641,7 +645,7 @@ async function guiFile(ma, file, sub, tenMoi) {
 /* Gửi bản mới xong: luôn hỏi xác nhận trước khi xóa bản cũ cùng loại. Bản xóa vào Thùng rác OneDrive (30 ngày). */
 async function guiLo(ma, k, list) {
   const cu = ((HS.ma === ma && HS.d && HS.d.files) || []).filter((f) => loaiFile(f) === k);
-  const ok = await Promise.all(list.map((x) => guiFile(ma, x.f, '', x.ten)));
+  const ok = await Promise.all(list.map((x) => guiFile(ma, x.f, '', x.ten, k)));
   const xong = list.filter((x, i) => ok[i]); if (!xong.length) { hsLoad(ma, true, true); return ok; }
   api({ action: 'xong', ma, ids: ok.filter((x) => typeof x === 'string'), ten: xong.map((x) => x.ten) }).catch(() => {});
   if (k === 'fsx') setTimeout(() => hoiDuFileSX(ma), 400);
@@ -656,6 +660,8 @@ async function guiLo(ma, k, list) {
 function openLb(src) { const d = document.createElement('div'); d.className = 'lbx'; d.innerHTML = `<button aria-label="Đóng">✕</button><img alt="">`; d.querySelector('img').src = src; d.addEventListener('click', () => d.remove()); document.body.appendChild(d); }
 document.addEventListener('change', (e) => {
   if (e.target.id === 'hs-loai') { HS.loai = e.target.value; paintHS(); return; }
+  const qk = e.target.dataset && e.target.dataset.qup;
+  if (qk && S.open) { const files = [...e.target.files], ma = S.open; e.target.value = ''; if (!files.length) return; hsChon(ma); toast('Đang gửi ' + files.length + ' file ' + (LOAI.find((l) => l[0] === qk) || [, ''])[1].split(' / ')[0] + '…'); guiLo(ma, qk, files.map((f) => ({ f, ten: tenHS(ma, qk, f.name) }))); return; }
   if (e.target.id === 'hs-file' && S.open) {
     const k = HS.loai, files = [...e.target.files]; e.target.value = '';
     if (!k) { alert('Chọn loại hồ sơ ở ô bên dưới (báo giá, DTKP, file in…) rồi bấm Gửi file.'); return; }
