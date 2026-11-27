@@ -564,12 +564,14 @@ document.addEventListener('click', async (e) => {
   } catch (err) { alert('Chưa lưu được: ' + err.message); b.disabled = false; b.textContent = 'Lưu ngày'; }
 });
 /* Đơn NCC làm trọn gói (anh Nix 27/11 17:09): DTKP ghi nhà cung cấp làm hết thì không theo dõi NVL (5), In (6), Thành phẩm (7);
-   chỉ theo dõi tới Lệnh SX, File SX rồi Giao hàng. Nhận biết qua dấu "NCC làm trọn gói" (hoặc "NCC làm hết", "supplier làm hết") trong ghi chú sổ. */
+   chỉ theo dõi tới Lệnh SX, File SX rồi Giao hàng. Nhận biết qua chữ "làm trọn gói" (hoặc "NCC/supplier … làm hết") trong ghi chú sổ
+   hoặc trong Ghi chú nhanh của đơn (20:57: anh Nix ghi "in phượng tường làm trọn gói từ in đến thành phẩm" bằng nút Ghi chú). */
 const BO_TRON_GOI = [5, 6, 7];
-const laTronGoi = (o) => /ncc lam (tron goi|het)|supplier lam (het|tron goi)/.test(nd(o.ghiChu));
+const TRON_GOI = /lam tron goi|(ncc|nha cung cap|supplier)[^.|]{0,40}lam het/;
+const laTronGoi = (o, notes) => TRON_GOI.test(nd(o.ghiChu)) || (notes || []).some((n) => n.ma === o.ma && TRON_GOI.test(nd(n.nd)));
 function boBuocTronGoi(data) {
   (data && data.orders || []).forEach((o) => {
-    if (!laTronGoi(o) || !o.steps || !o.steps.length) return;
+    if (!laTronGoi(o, data.notes) || !o.steps || !o.steps.length) return;
     o.tronGoi = true;
     o.steps = o.steps.filter((x) => !BO_TRON_GOI.includes(x.so));
     o.soBuoc = o.steps.length; o.daXong = o.steps.filter((x) => x.tt === 'Xong').length;
@@ -655,7 +657,7 @@ function render() {
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.27'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.28'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
@@ -1266,7 +1268,7 @@ async function luuNote(xong) {
     const r = await api({ action: 'note', ma: ma === 'CHUNG' || ma === 'MOI' ? '' : ma, so, nd: ndGui, xong: !!xong, moi });
     NOTE.files = [];
     if (r.moi) { store.set('la-note-nhap', null); NOTE.nd = ''; NOTE.busy = false; dongP(); toast('Đã mở đơn ' + r.moi.ma + ' (Bid)'); S.moSau = fl.length ? { ma: r.moi.ma, muc: 'qt' } : r.moi.ma; load(S.code); if (fl.length) guiFileNote(r.moi.ma, fl); return; }
-    (S.data.notes = S.data.notes || []).unshift(r.note);
+    (S.data.notes = S.data.notes || []).unshift(r.note); boBuocTronGoi(S.data);
     if (r.note.xong) { const o = S.data.orders.find((x) => x.ma === ma), s = o && o.steps.find((x) => x.so === so); if (s) { s.tt = 'Xong'; s.xong = S.data.today; o.daXong = o.steps.filter((x) => x.tt === 'Xong').length; o.cur = o.steps.find((x) => x.tt !== 'Xong') || null; } }
     store.set('la-note-nhap', null); NOTE.nd = ''; NOTE.busy = false;
     dongP(); render();
