@@ -198,7 +198,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 .tbi b{font-size:14.5px}.tbi span{font-size:13.5px;line-height:1.4}.tbi small{font-size:11.5px;color:var(--nhat)}.tbi.moi{border-left:4px solid var(--son);background:#FFF8F0}.tbcd{margin-top:16px}.tbcd summary{font-weight:700;color:var(--nhat);font-size:13px;cursor:pointer;padding:8px 0}
 .ib .dot{position:absolute;top:8px;right:9px;width:9px;height:9px;border-radius:5px;background:#F2B544;border:1.5px solid var(--son)}.ib .dot[hidden]{display:none}
 .t1{font-size:14.5px;font-weight:600;line-height:1.5;color:var(--muc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gcd{margin-top:6px}.gcd p{font-size:13.5px;line-height:1.55;margin:6px 0;color:var(--muc)}
-.bgi{display:flex;gap:10px;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--ke)}.bgi .bgl{min-width:0;flex:1}.bgi .bgl b{display:block;font-size:14.5px;line-height:1.4}.bgi .bgl b em{font-style:normal;font-size:11px;font-weight:700;color:var(--nhat);background:var(--nga);border-radius:6px;padding:1px 6px;margin-left:4px;vertical-align:1px}.bgi .bm{margin:2px 0 0;font-size:12.5px;line-height:1.45;color:var(--nhat);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}.bgi .bm.mo{display:block}.bgi .bgl small{display:block;margin-top:2px;font-size:13px;color:var(--muc)}.bgi .bgr{flex:none;font-weight:700;font-size:14.5px;text-align:right;white-space:nowrap}.bgi.kc{opacity:.6}.bgt{padding:6px 0 2px;font-size:13.5px}.bgt>div{display:flex;justify-content:space-between;padding:2px 0;color:var(--muc)}.bgt .tc{font-weight:700;font-size:15.5px;color:var(--son);border-top:1px solid var(--ke);margin-top:4px;padding-top:6px}.bgt .lech{margin:6px 0 0;font-size:12.5px;color:var(--warn);background:var(--warnb);border-radius:8px;padding:6px 8px}.bgks{display:grid;gap:8px;margin-top:10px}.bgk{display:flex;gap:8px;align-items:flex-start;background:var(--kem);border-radius:12px;padding:9px 10px}.bgk svg{flex:none;color:var(--son);margin-top:2px}.bgk>div{min-width:0}.bgk small{display:block;font-size:10.5px;font-weight:700;color:var(--nhat);text-transform:uppercase;letter-spacing:.04em}.bgk b{display:block;font-size:14px;line-height:1.4;font-weight:600}.bgk span{display:block;font-size:13px;line-height:1.45;color:var(--muc);margin-top:2px}.bgk span b{display:inline;font-weight:700}.bgk span b.no{color:var(--bad)}.bgn{font-size:12px;color:var(--nhat);margin:8px 0 0;line-height:1.4}
+.tqh{display:flex;justify-content:space-between;align-items:center;margin:0 0 4px}.tqh span{font-size:11px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--nhat);background:var(--nga);border-radius:6px;padding:1px 7px}.tq{display:flex;align-items:baseline;gap:10px;padding:3px 0;font-size:14px}.tq .a{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}.tq .a small{font-weight:400;color:var(--nhat);font-size:12.5px;margin-left:6px}.tq .a em{font-style:normal;font-size:11px;color:var(--nhat)}.tq>b{flex:none;font-weight:700}.tq.kc{opacity:.55}.tq.tc{border-top:1px solid var(--ke);margin-top:3px;padding-top:6px;color:var(--son)}.tq.tc>b{font-size:15px}.tql{font-size:12px;color:var(--warn);margin-top:1px}.tqf{font-size:13px;color:var(--muc);margin-top:6px;background:var(--kem);border-radius:9px;padding:6px 9px}.tqf b.no{color:var(--bad)}.tqf b.ok{color:var(--ok)}.gcd summary{font-size:13px}.gcd p.gs{margin-top:10px}
 .hh2{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}.hh2 b{font-size:15px}
 .info{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .it{background:var(--kem);border-radius:12px;padding:9px 10px;display:flex;gap:8px;align-items:flex-start;min-width:0}
@@ -421,43 +421,37 @@ function rutGon(o) {
 const soVN = (n) => n == null ? '' : (+n).toLocaleString('vi-VN', { maximumFractionDigits: 2 });
 function vTT(o) {
   const bgAll = S.data.bg || {}, B = bgAll[o.ma] || bgAll[Object.keys(bgAll).find((k) => k.toLowerCase() === String(o.ma).toLowerCase())];
-  const r = rutGon(o); r.tt = String(r.tt || '').replace(/^Tt\b/, 'Thanh toán'); const note = String(o.ghiChu || '').split(/\s\|\s/).map((p) => `<p>${esc(p.trim())}</p>`).join('');
-  const gcd = o.ghiChu ? `<details class="gcd"><summary>Xem ghi chú đầy đủ</summary>${note}</details>` : '';
-  const hanSo = o.han ? dm(o.han) + '/' + o.han.slice(0, 4) : (o.hanText || '');
-  const dong = (ic, lab, chinh, phu) => `<div class="bgk">${icT(ic)}<div><small>${lab}</small><b>${chinh}</b>${phu ? `<span>${phu}</span>` : ''}</div></div>`;
-  const tien = o.dt > 0 || o.daThu > 0 ? `Đã thu ${vnd(o.daThu)}${o.dt > 0 ? ' / ' + vnd(o.dt) : ''} · còn phải thu <b class="${o.phaiThu > 0 ? 'no' : ''}">${vnd(o.phaiThu)}</b>` : '';
-  let hang, tong = '', giaoPhu = '', cnChinh, nguon = '';
+  const r = rutGon(o); r.tt = String(r.tt || '').replace(/^Tt\b/, 'Thanh toán');
+  const gon = (n) => n >= 1e6 ? tr(n) : vnd(n);
+  const ct = [], dong = (a, b, c) => `<div class="tq"><span class="a">${a}${b ? `<small>${b}</small>` : ''}</span><b>${c}</b></div>`;
+  let hang = '', tong = '', nhan = '';
   if (B && B.items && B.items.length) {
-    hang = B.items.map((x, i) => {
-      const q = x.sl != null ? soVN(x.sl) + (x.dvt ? ' ' + x.dvt : '') + (x.dg != null ? ' × ' + soVN(x.dg) + 'đ' : '') : '';
-      return `<div class="bgi${x.cong ? '' : ' kc'}"><div class="bgl"><b>${esc(x.hh || 'Hàng hoá ' + (i + 1))}${x.cong ? '' : ' <em>không cộng</em>'}</b>${x.mt ? `<p class="bm" data-bgmt>${esc(x.mt)}</p>` : ''}${q ? `<small>${esc(q)}</small>` : ''}</div><div class="bgr">${x.tt != null ? soVN(x.tt) + 'đ' : '<span class="mut">chưa có giá</span>'}</div></div>`;
-    }).join('');
+    hang = B.items.map((x) => dong(esc(x.hh || 'Hàng hoá') + (x.cong ? '' : ' <em>không cộng</em>'), x.sl != null ? esc(soVN(x.sl) + (x.dg != null ? ' × ' + soVN(x.dg) : ' ' + (x.dvt || ''))) : '', x.tt != null ? gon(x.tt) : '–').replace('class="tq"', x.cong ? 'class="tq"' : 'class="tq kc"')).join('');
+    B.items.forEach((x) => { if (x.mt) ct.push(`<p><b>${esc(x.hh)}:</b> ${esc(x.mt)}</p>`); });
     const co = B.items.filter((x) => x.cong && x.tt != null), truoc = co.reduce((a, x) => a + x.tt, 0);
     const vm = {}; let chuaRo = false;
     co.forEach((x) => { if (x.vat == null) chuaRo = true; else if (x.vat > 0) vm[x.vat] = (vm[x.vat] || 0) + x.tt * x.vat / 100; });
-    const vs = Object.keys(vm).reduce((a, k) => a + vm[k], 0), tc = Math.round(truoc + vs);
-    if (!co.length && o.dt > 0) tong = `<div class="bgt"><div class="tc"><span>Giá trị đơn (theo sổ thu chi)</span><span>${vnd(o.dt)}</span></div></div>`;
+    const ks = Object.keys(vm), vs = ks.reduce((a, k) => a + vm[k], 0), tc = Math.round(truoc + vs);
     if (co.length) {
-      const rows = [];
-      if (vs > 0 || co.length > 1 || chuaRo) rows.push(['Cộng chưa VAT', vnd(truoc)]);
-      Object.keys(vm).sort().forEach((k) => rows.push(['VAT ' + soVN(+k) + '%', vnd(vm[k])]));
-      if (chuaRo) rows.push(['VAT', '<span class="mut">chưa ghi trong báo giá</span>']);
-      else if (!vs) rows.push(['VAT', 'không VAT']);
+      const lb = chuaRo ? 'chưa VAT' : vs ? 'gồm VAT ' + (ks.length === 1 ? soVN(+ks[0]) + '%' : '') : 'không VAT';
       const lech = !chuaRo && o.dt > 0 && Math.abs(tc - o.dt) > 1000;
-      tong = `<div class="bgt">${rows.map(([a, b]) => `<div><span>${a}</span><span>${b}</span></div>`).join('')}<div class="tc"><span>${chuaRo ? 'Tổng (chưa gồm VAT)' : 'Tổng cộng'}</span><span>${vnd(tc)}</span></div>${lech ? `<p class="lech">Sổ thu chi ghi doanh thu dự kiến ${vnd(o.dt)}, lệch ${vnd(Math.abs(tc - o.dt))} so với báo giá.</p>` : ''}</div>`;
-    }
-    giaoPhu = B.giao ? esc(B.giao) : '';
-    cnChinh = B.cn ? esc(B.cn) : (r.tt ? esc(r.tt) : 'Chưa ghi điều khoản thanh toán');
-    nguon = B.nguon ? `<p class="bgn">Nguồn: ${esc(B.nguon)}</p>` : '';
+      tong = `<div class="tq tc"><span class="a">Tổng<small>${lb.trim()}</small></span><b>${vnd(tc)}</b></div>${lech ? `<div class="tql">⚠ Sổ thu chi ghi ${vnd(o.dt)}</div>` : ''}`;
+      if (vs) ct.push(`<p><b>Chưa VAT:</b> ${vnd(truoc)} · <b>VAT:</b> ${vnd(vs)}</p>`);
+    } else if (o.dt > 0) tong = `<div class="tq tc"><span class="a">Tổng<small>theo sổ</small></span><b>${vnd(o.dt)}</b></div>`;
+    if (B.giao) ct.push(`<p><b>Giao hàng:</b> ${esc(B.giao)}</p>`);
+    if (B.cn || r.tt) ct.push(`<p><b>Thanh toán:</b> ${esc(B.cn || r.tt)}</p>`);
+    if (B.nguon) ct.push(`<p><b>Nguồn:</b> ${esc(B.nguon)}</p>`);
   } else {
-    const parts = [r.sl, r.cl[0], r.gc.slice(0, 3).join(', ')].filter(Boolean);
-    hang = `<div class="bgi"><div class="bgl"><b>${esc(o.sp || o.ma)}</b>${parts.length ? `<small>${esc(parts.join(' · '))}</small>` : ''}</div><div class="bgr">${o.dt > 0 ? vnd(o.dt) : ''}</div></div><p class="bgn">Chưa có số liệu báo giá cho đơn này (tab "Báo giá" trong sổ thu chi).</p>`;
-    giaoPhu = r.giao ? 'Giao tại ' + esc(r.giao) : '';
-    cnChinh = r.tt ? esc(r.tt) : 'Chưa ghi điều khoản thanh toán';
+    nhan = '<span>chưa có báo giá</span>';
+    hang = dong(esc(o.sp || o.ma), esc([r.sl, r.cl[0], r.gc.slice(0, 2).join(', ')].filter(Boolean).join(' · ')), o.dt > 0 ? gon(o.dt) : '–');
+    if (r.giao) ct.push(`<p><b>Giao hàng:</b> ${esc(r.giao)}</p>`);
+    if (r.tt) ct.push(`<p><b>Thanh toán:</b> ${esc(r.tt)}</p>`);
   }
-  return `<div class="hlab">Tổng quan đơn hàng</div>${hang}${tong}<div class="bgks">${dong('tg', 'Ngày giao hàng', hanSo ? esc(hanSo) : '<span class="mut">Chưa có hạn giao</span>', giaoPhu)}${dong('tien', 'Công nợ', cnChinh, tien)}</div>${nguon}${gcd}`;
+  const han = o.han ? dm(o.han) : o.hanText;
+  const cuoi = [`Giao <b>${han ? esc(han) : 'chưa có'}</b>`, o.dt > 0 || o.daThu > 0 ? `Đã thu <b>${gon(o.daThu)}</b>` : '', o.dt > 0 ? (o.phaiThu > 0 ? `Còn <b class="no">${gon(o.phaiThu)}</b>` : '<b class="ok">Thu đủ</b>') : ''].filter(Boolean).join(' · ');
+  if (o.ghiChu) ct.push('<p class="gs"><b>Ghi chú sổ:</b></p>' + String(o.ghiChu).split(/\s\|\s/).map((p) => `<p>${esc(p.trim())}</p>`).join(''));
+  return `<div class="hlab tqh">Tổng quan đơn hàng${nhan}</div>${hang}${tong}<div class="tqf">${cuoi}</div>${ct.length ? `<details class="gcd"><summary>Chi tiết</summary>${ct.join('')}</details>` : ''}`;
 }
-document.addEventListener('click', (e) => { const m = e.target.closest('[data-bgmt]'); if (m) m.classList.toggle('mo'); });
 /* ---------- Quy trình 4 giai đoạn (chốt 26/11/2026): Bid → Run → Giao hàng → Done ---------- */
 const GD = ['Bid', 'Run', 'Giao hàng', 'Done'];
 const QT = {};
@@ -605,7 +599,7 @@ function render() {
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.21'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.22'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
@@ -686,7 +680,7 @@ const goc = (f) => fold(f.ten).replace(/\.[a-z0-9]+$/, '').replace(/\(\d+\)|\bco
 /* Trùng (cùng loại, cùng tên gốc, kể cả khác đuôi xlsx/pdf): chỉ hiện bản mới nhất */
 function locHoSo(files) {
   const by = {};
-  files.forEach((f) => { const k = loaiFile(f); if (!k) return; const g = k + '|' + goc(f); const cur = by[g];
+  (files || []).forEach((f) => { const k = loaiFile(f); if (!k) return; const g = k + '|' + goc(f); const cur = by[g];
     if (!cur || f.sua > cur.sua || (f.sua === cur.sua && /pdf/.test(f.loai))) by[g] = Object.assign({ k }, f); });
   return Object.values(by).sort((a, b) => (a.sua < b.sua ? 1 : -1));
 }
