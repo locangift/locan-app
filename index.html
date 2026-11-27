@@ -125,6 +125,21 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 .sbox button{border:0;background:var(--nga);width:26px;height:26px;border-radius:13px;font-size:14px;color:var(--muc)}
 .sx{border:0;background:transparent;color:var(--kem);font-size:15px;font-weight:600;padding:10px 4px}
 .sbody{flex:1;overflow:auto;padding:12px 14px calc(24px + env(safe-area-inset-bottom));max-width:720px;width:100%;margin:0 auto}
+.cd{margin:0 0 10px;scroll-margin-top:64px}
+.cdi{display:flex;align-items:center;gap:8px;border:1px solid var(--ke);border-radius:10px;background:#fff;padding:0 10px}
+.cdi:focus-within{border-color:var(--son)}
+.cdi input{flex:1;min-width:0;border:0;outline:0;background:transparent;padding:10px 0;font-size:16px;color:var(--muc)}
+.cdi .cdo{border:0;background:none;color:var(--nhat);font-size:13px;padding:6px 0 6px 6px}
+.cdl{margin-top:6px;border:1px solid var(--ke);border-radius:10px;background:#fff;max-height:46vh;overflow-y:auto;-webkit-overflow-scrolling:touch;box-shadow:0 6px 18px rgba(46,42,38,.10)}
+.cdl button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--nga);background:#fff;padding:9px 12px;font-size:14px;color:var(--muc);cursor:pointer}
+.cdl button:last-child{border-bottom:0}
+.cdl button b{display:block;font-weight:600}
+.cdl button small{display:block;color:var(--nhat);font-size:12px;margin-top:2px}
+.cdl button small .tag{font-size:10.5px;padding:0 6px;margin-right:4px}
+.cdl button.on{background:var(--okb)}
+.cdl .cdx{color:var(--son);font-weight:600}
+.nfadd{display:flex;align-items:center;gap:8px;width:100%;border:1px dashed var(--son);background:#fff;color:var(--son);border-radius:10px;padding:10px 12px;font-size:14px;font-weight:600;margin:0 0 6px;cursor:pointer}
+.nfadd i{font-style:normal;display:grid;place-items:center;width:24px;height:24px;border-radius:12px;background:var(--son);color:var(--kem);font-size:17px;line-height:1}
 .schips{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 14px}
 .schips button{border:1px solid var(--ke);background:#fff;border-radius:999px;padding:7px 12px;font-size:13.5px;color:var(--muc)}
 .sh3{font-size:12px;font-weight:700;color:var(--nhat);text-transform:uppercase;letter-spacing:.04em;margin:6px 0 8px}
@@ -545,7 +560,7 @@ function render() {
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.9'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.10'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
@@ -691,25 +706,20 @@ async function guiLo(ma, k, list) {
 /* Chọn file bằng 1 ô chọn file cố định ngoài phần giao diện vẽ lại: trên iPhone, quay về từ màn hình chọn file app tự tải lại số liệu và vẽ lại, ô chọn file nằm trong đơn bị thay mới nên mất sự kiện chọn file (lỗi anh Nix báo 27/11 12:52) */
 const PICK = { ma: '', k: '', luc: 0 };
 const tenLoaiNgan = (k) => ((LOAI.find((l) => l[0] === k) || [, ''])[1] || '').split(' / ')[0];
-function chonFile(ma, k) {
+function chonFile(ma, k, cb) {
   let i = document.getElementById('pick-in');
   if (!i) {
     i = document.createElement('input'); i.type = 'file'; i.multiple = true; i.id = 'pick-in'; i.tabIndex = -1; i.setAttribute('aria-hidden', 'true');
     i.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0';
     document.body.appendChild(i);
     i.addEventListener('change', () => {
-      const files = [...i.files], ma2 = PICK.ma, k2 = PICK.k; i.value = ''; PICK.luc = 0;
+      const files = [...i.files], ma2 = PICK.ma, k2 = PICK.k, cb = PICK.cb; i.value = ''; PICK.luc = 0; PICK.cb = null;
+      if (cb) { if (files.length) cb(files); return; }
       if (!files.length || !ma2 || !k2) return;
-      hsChon(ma2); toast('Đang gửi ' + files.length + ' file ' + tenLoaiNgan(k2) + '…');
-      const truoc = HS.up.length;
-      guiLo(ma2, k2, files.map((f) => ({ f, ten: tenHS(ma2, k2, f.name) }))).then((ok) => {
-        const loi = HS.up.slice(truoc).filter((u) => u.err).map((u) => u.ten + ': ' + u.err.replace(/^Gửi chưa được: /, ''));
-        if (loi.length) alert('Chưa gửi được ' + loi.length + ' file:\n' + loi.join('\n') + '\n\nAnh chụp màn hình này gửi Lisa nhé.');
-        else toast('Đã lưu ' + files.length + ' file ' + tenLoaiNgan(k2) + ' vào đơn ✓');
-      }).catch((err) => alert('Chưa gửi được: ' + ((err && err.message) || err)));
+      guiVaBao(ma2, k2, files);
     });
   }
-  PICK.ma = ma; PICK.k = k; PICK.luc = Date.now(); i.click();
+  PICK.ma = ma; PICK.k = k; PICK.cb = cb || null; PICK.luc = Date.now(); i.click();
 }
 document.addEventListener('click', (e) => {
   const q = e.target.closest('[data-qup]'); if (q && S.open) { chonFile(S.open, q.dataset.qup); return; }
@@ -805,8 +815,7 @@ function vHop() {
   if (!L.length) { $('#pres').innerHTML = `<div class="note">Không còn file nào chờ xếp.</div>${HOP.err ? `<div class="err">${esc(HOP.err)}</div>` : ''}`; return; }
   L.forEach((x) => { if (HOP.loai[x.key] == null) HOP.loai[x.key] = loaiDoan(x.ten); });
   $('#pres').innerHTML = `<div class="hlab">1. Đơn hàng</div>
-    <input id="hq" class="subsel" style="margin:0 0 6px" placeholder="Gõ mã đơn, tên khách để lọc…" value="${esc(HOP.q)}" autocomplete="off">
-    <select id="hdon" class="subsel" style="margin-top:0" aria-label="Đơn hàng">${donOpts()}</select>
+    ${vChonDon('hop')}
     <div class="hlab">2. Loại hồ sơ của từng file</div>
     ${L.map((x) => `<div class="hi"><span class="fi">${x.anh ? `<img src="${esc(x.anh)}" alt="">` : esc(ext(x.ten))}</span><span class="hm"><b>${esc(x.ten)}</b><small>${kb(x.size)} · ${x.od ? 'gửi từ phím tắt iPhone' : 'chia sẻ trên máy này'}</small>
       <select data-hloai="${esc(x.key)}" aria-label="Loại hồ sơ"><option value="">— Chọn loại —</option>${optLoai(HOP.loai[x.key])}</select></span>
@@ -817,8 +826,8 @@ function vHop() {
 }
 function hsChon(ma) { if (HS.ma === ma) return; HS.ma = ma; HS.loai = ''; HS.err = ''; HS.d = null; try { HS.d = JSON.parse(store.get(hsKey(ma)) || 'null'); } catch (e) {} }
 async function xepHop() {
-  const L = hopItems(), ma = ($('#hdon') || {}).value;
-  if (!ma) { HOP.err = 'Anh chọn đơn hàng trước.'; vHop(); return; }
+  const L = hopItems(), ma = S.data.orders.some((o) => o.ma === HOP.ma) ? HOP.ma : '';
+  if (!ma) { HOP.err = 'Anh gõ tìm và bấm chọn đơn hàng trước.'; vHop(); return; }
   const thieu = L.filter((x) => !HOP.loai[x.key]);
   if (thieu.length) { HOP.err = 'Chọn loại hồ sơ cho: ' + thieu.map((x) => x.ten).join(', '); vHop(); return; }
   HOP.err = ''; HOP.busy = true; HOP.ma = ma; store.set('la-don-cuoi', ma); vHop();
@@ -856,7 +865,7 @@ async function boHop(key) {
 
 /* ---------- Ghi chú nhanh (anh Nix 27/11/2026): gõ 1 câu, app tự đoán đơn + bước tiến độ, người ghi bấm 1 lần để lưu.
    Báo xong thì hỏi rồi mới tick bước. Lưu vào sổ (tab "Ghi chú nhanh" + cột Ghi chú của bước), báo 2 người còn lại. ---------- */
-const NOTE = { ma: '', so: 0, nd: '', tuMa: false, tuSo: false, cand: [], chac: false, busy: false, err: '', moi: { kh: '', ten: '', makh: '', lh: '', sdt: '', sp: '', tuMa: false } };
+const NOTE = { files: [], ma: '', so: 0, nd: '', tuMa: false, tuSo: false, cand: [], chac: false, busy: false, err: '', moi: { kh: '', ten: '', makh: '', lh: '', sdt: '', sp: '', tuMa: false } };
 /* Đơn mới / khách mới từ ghi chú: mã đơn <MÃ KH> <Sản phẩm không dấu> <yymm>[NN], trạng thái Bid */
 const BO_TU = /\b(cong ty|cty|tnhh|co phan|cp|mtv|thuong mai|dich vu|san xuat|tm|dv|sx|xnk|xuat nhap khau|viet nam|vn|tap doan|chi nhanh)\b/g;
 const goiYMaKh = (ten) => { const t = nd(ten).replace(BO_TU, ' ').replace(/[^a-z0-9]/g, '').toUpperCase(); return (t || nd(ten).replace(/[^a-z0-9]/g, '').toUpperCase()).slice(0, 12); };
@@ -924,6 +933,45 @@ function vGCN(o) {
   return `<div class="hh2"><b>📝 Ghi chú nhanh</b><button class="nadd" data-nnew="${esc(o.ma)}">✏️ Ghi chú</button></div>${L.length ? L.slice(0, 12).map((n) => noteRow(n, false)).join('') + (L.length > 12 ? `<div class="mut" style="margin-top:6px">… và ${L.length - 12} ghi chú cũ hơn trong sổ, tab Ghi chú nhanh.</div>` : '') : '<div class="mut">Chưa có ghi chú. Bấm ✏️ để ghi nhanh, app tự gắn vào đúng bước.</div>'}`;
 }
 function noteBuoc(o, so) { const L = notesCua(o.ma).filter((n) => n.so === so).slice(0, 3); return L.length ? `<div style="margin-top:8px">${L.map((n) => noteRow(n, false)).join('')}</div>` : ''; }
+/* Ô tìm đơn (Ghi chú nhanh, Xếp file): gõ vài chữ của mã đơn, tên khách, sản phẩm (không cần dấu) → xổ danh sách đơn khớp, bấm 1 đơn để chọn */
+function donTim(q) {
+  const t = fold(q).split(/\s+/).filter(Boolean);
+  const L = S.data.orders.filter((o) => o.tt !== 'Failed' && (!t.length || t.every((w) => fold([o.ma, o.kh, o.sp].join(' ')).includes(w))));
+  return ['Run', 'Giao hàng', 'Bid', 'Done'].flatMap((tt) => { const l = L.filter((o) => o.tt === tt); return tt === 'Bid' ? moiTruoc(l) : l; });
+}
+const cdChon = (key) => key === 'note' ? NOTE.ma : HOP.ma;
+const cdTen = (key) => { const v = cdChon(key); return v === 'MOI' ? '➕ Đơn mới / khách mới' : v === 'CHUNG' ? 'Việc chung (không thuộc đơn nào)' : v && S.data.orders.some((o) => o.ma === v) ? v : ''; };
+function vChonDon(key) {
+  return `<div class="cd" data-cd="${key}"><div class="cdi"><span aria-hidden="true">🔍</span><input id="cd-${key}" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" placeholder="Gõ mã đơn, tên khách, sản phẩm…" value="${esc(cdTen(key))}" aria-label="Tìm và chọn đơn hàng"><button type="button" class="cdo" data-cdo="${key}" aria-label="Xem tất cả đơn">▾</button></div><div class="cdl" id="cdl-${key}" hidden></div></div>`;
+}
+function veCD(key, q) {
+  const el = $('#cdl-' + key); if (!el) return;
+  const L = donTim(q), chon = cdChon(key);
+  const ex = key === 'note' && !fold(q).trim() ? [['MOI', '➕ Đơn mới / khách mới…'], ['CHUNG', 'Việc chung (không thuộc đơn nào)']] : key === 'note' ? [['MOI', '➕ Không thấy? Mở đơn mới / khách mới…']] : [];
+  el.innerHTML = (key === 'note' && !fold(q).trim() ? ex : []).map(([v, l]) => `<button type="button" class="cdx ${v === chon ? 'on' : ''}" data-cdv="${v}">${l}</button>`).join('')
+    + (L.length ? L.map((o) => `<button type="button" class="${o.ma === chon ? 'on' : ''}" data-cdv="${esc(o.ma)}"><b>${esc(o.ma)}</b><small><span class="tag ${ttCls(o)}">${esc(o.tt)}</span>${esc(o.kh || '')}${o.sp ? ' · ' + esc(o.sp) : ''}</small></button>`).join('')
+      : `<div class="mut" style="padding:10px 12px">Không có đơn nào khớp "${esc(q)}".</div>`)
+    + (key === 'note' && fold(q).trim() ? ex.map(([v, l]) => `<button type="button" class="cdx" data-cdv="${v}">${l}</button>`).join('') : '');
+  el.hidden = false;
+}
+function dongCD(tru) { document.querySelectorAll('.cd').forEach((c) => { const k = c.dataset.cd; if (k === tru) return; const l = $('#cdl-' + k), i = $('#cd-' + k); if (l) l.hidden = true; if (i && document.activeElement !== i) i.value = cdTen(k); }); }
+function chonCD(key, v) {
+  if (key === 'note') {
+    NOTE.ma = v; NOTE.tuMa = true; NOTE.chac = true; NOTE.err = '';
+    if (v === 'MOI') NOTE.so = 0;
+    else if (!NOTE.tuSo) { NOTE.so = 0; doanNote(); }
+    else { const o = S.data.orders.find((x) => x.ma === v); if (!o || !(o.steps || []).some((x) => x.so === NOTE.so)) NOTE.so = 0; }
+    paintNS();
+  } else { HOP.ma = v; HOP.err = ''; vHop(); }
+}
+document.addEventListener('focusin', (e) => { const i = e.target.closest('.cd input'); if (!i) return; const k = i.closest('.cd').dataset.cd; dongCD(k); i.select(); veCD(k, ''); setTimeout(() => i.closest('.cd').scrollIntoView({ block: 'start', behavior: 'smooth' }), 300); });
+document.addEventListener('input', (e) => { const i = e.target.closest('.cd input'); if (i) veCD(i.closest('.cd').dataset.cd, i.value); });
+document.addEventListener('keydown', (e) => { const i = e.target.closest('.cd input'); if (!i || e.key !== 'Enter') return; e.preventDefault(); const k = i.closest('.cd').dataset.cd, b = document.querySelector('#cdl-' + k + ' button:not(.cdx)') || document.querySelector('#cdl-' + k + ' button'); if (b) b.click(); });
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-cdv]'); if (b) { const k = b.closest('.cd').dataset.cd; $('#cdl-' + k).hidden = true; document.activeElement && document.activeElement.blur(); chonCD(k, b.dataset.cdv); return; }
+  const o = e.target.closest('[data-cdo]'); if (o) { const k = o.dataset.cdo, l = $('#cdl-' + k); if (l && !l.hidden) { l.hidden = true; return; } dongCD(k); veCD(k, ''); return; }
+  if (!e.target.closest('.cd')) dongCD();
+});
 function noteDonOpts() {
   const G = [['Run', 'Đang chạy'], ['Giao hàng', 'Đã giao'], ['Bid', 'Báo giá'], ['Done', 'Đã xong']], L = S.data.orders.filter((o) => o.tt !== 'Failed');
   return `<option value="">— Chọn đơn hàng —</option><option value="MOI" ${NOTE.ma === 'MOI' ? 'selected' : ''}>➕ Đơn mới / khách mới…</option><option value="CHUNG" ${NOTE.ma === 'CHUNG' ? 'selected' : ''}>Việc chung (không thuộc đơn nào)</option>` + G.map(([tt, ten]) => {
@@ -931,12 +979,41 @@ function noteDonOpts() {
     return l.length ? `<optgroup label="${ten}">${l.map((o) => `<option value="${esc(o.ma)}" ${o.ma === NOTE.ma ? 'selected' : ''}>${esc(o.ma)}</option>`).join('')}</optgroup>` : '';
   }).join('');
 }
+/* File đính kèm ghi chú: đoán loại hồ sơ theo tên file → nội dung ghi chú → bước đang chọn (ảnh ở bước In/Thành phẩm/Giao hàng = ảnh thực tế) */
+const BUOC_LOAI = { 1: 'hd', 2: 'dtkp', 3: 'lsx', 4: 'fsx', 6: 'anh', 7: 'anh', 8: 'gh', 9: 'nt' };
+function doanLoaiNote(f) {
+  const anh = /^image\//.test(f.type || '') || duoi(f.name) === 'anh';
+  return loaiDoan(f.name) || loaiDoan(NOTE.nd) || (NOTE.so === 8 && anh ? 'anh' : BUOC_LOAI[NOTE.so] || '') || '';
+}
+function boFileNote() { (NOTE.files || []).forEach((x) => { if (x.url) URL.revokeObjectURL(x.url); }); NOTE.files = []; }
+function vNoteFile() {
+  NOTE.files.forEach((x) => { if (!x.chon) x.k = doanLoaiNote(x.f); });
+  return NOTE.files.map((x, i) => `<div class="hi"><span class="fi">${x.url ? `<img src="${x.url}" alt="">` : esc(ext(x.f.name))}</span><span class="hm"><b>${esc(x.f.name)}</b><small>${kb(x.f.size)}${x.k && !x.chon ? ' · app tự chọn loại' : ''}</small>
+    <select data-nfloai="${i}" aria-label="Loại hồ sơ"><option value="">— Chọn loại hồ sơ —</option>${optLoai(x.k)}</select></span><button class="hx" data-nfbo="${i}" aria-label="Bỏ file ${esc(x.f.name)}">✕</button></div>`).join('')
+    + `<button type="button" class="nfadd" data-nfadd ${NOTE.busy ? 'disabled' : ''}><i aria-hidden="true">＋</i>${NOTE.files.length ? 'Thêm file / ảnh' : 'Đính kèm file hoặc ảnh'}</button>`;
+}
+async function guiVaBao(ma, k, files) {
+  hsChon(ma); toast('Đang gửi ' + files.length + ' file ' + tenLoaiNgan(k) + '…');
+  const truoc = HS.up.length;
+  try {
+    await guiLo(ma, k, files.map((f) => ({ f, ten: tenHS(ma, k, f.name) })));
+    const loi = HS.up.slice(truoc).filter((u) => u.err).map((u) => u.ten + ': ' + u.err.replace(/^Gửi chưa được: /, ''));
+    if (loi.length) alert('Chưa gửi được ' + loi.length + ' file:\n' + loi.join('\n') + '\n\nAnh chụp màn hình này gửi Lisa nhé.');
+    else toast('Đã lưu ' + files.length + ' file ' + tenLoaiNgan(k) + ' vào đơn ✓');
+  } catch (err) { alert('Chưa gửi được: ' + ((err && err.message) || err)); }
+}
+async function guiFileNote(ma, list) {
+  const nhom = {}; list.forEach((x) => { (nhom[x.k] = nhom[x.k] || []).push(x.f); });
+  for (const k of Object.keys(nhom)) await guiVaBao(ma, k, nhom[k]);
+  list.forEach((x) => { if (x.url) URL.revokeObjectURL(x.url); });
+}
 function vNoteSug() {
   const o = NOTE.ma && NOTE.ma !== 'CHUNG' && S.data.orders.find((x) => x.ma === NOTE.ma), steps = (o && o.steps) || [], s = steps.find((x) => x.so === NOTE.so);
   const chips = !NOTE.tuMa && NOTE.cand.length > 1 && !NOTE.chac ? `<div class="mut" style="margin:2px 0 6px">Câu này khớp nhiều đơn, anh bấm chọn đúng đơn:</div><div class="schips">${NOTE.cand.map((c) => `<button data-nma="${esc(c.o.ma)}" class="${c.o.ma === NOTE.ma ? 'on' : ''}">${esc(c.o.ma)}</button>`).join('')}</div>` : '';
   const hoi = s && s.so <= 9 && s.tt !== 'Xong' && laXong(NOTE.nd), dis = NOTE.busy ? 'disabled' : '';
-  return `<div class="hlab">Đơn hàng${NOTE.ma && !NOTE.tuMa ? '<span class="nai">app tự chọn</span>' : ''}</div>
-    <select id="ndon" class="subsel" style="margin-top:0" aria-label="Đơn hàng">${noteDonOpts()}</select>${chips}
+  return `<div style="margin-top:8px">${vNoteFile()}</div>
+    <div class="hlab">Đơn hàng${NOTE.ma && !NOTE.tuMa ? '<span class="nai">app tự chọn</span>' : ''}</div>
+    ${vChonDon('note')}${chips}
     ${NOTE.ma === 'MOI' ? vMoi() : `<div class="hlab">Bước tiến độ${NOTE.so && !NOTE.tuSo ? '<span class="nai">app tự chọn</span>' : ''}</div>
     <select id="nbuoc" class="subsel" style="margin-top:0" aria-label="Bước tiến độ" ${steps.length ? '' : 'disabled'}><option value="0">${steps.length ? 'Ghi chú chung của đơn (không gắn bước)' : o ? 'Đơn chưa có tiến độ: ghi chú chung của đơn' : '—'}</option>${steps.map((x) => `<option value="${x.so}" ${x.so === NOTE.so ? 'selected' : ''}>${x.so}. ${esc(STEP[x.so - 1] || x.ten)}${x.tt === 'Xong' ? ' ✓' : ''}</option>`).join('')}</select>`}
     ${NOTE.err ? `<div class="err" style="margin-top:4px">${esc(NOTE.err)}</div>` : ''}
@@ -953,6 +1030,7 @@ function vNote() {
     <div class="hlab" style="margin-top:18px">Ghi chú gần đây</div><div class="note" style="padding:4px 12px">${L.length ? L.map((n) => noteRow(n, true)).join('') : '<div class="mut" style="padding:8px 0">Chưa có ghi chú nào.</div>'}</div>`;
 }
 function moNote(ma) {
+  boFileNote();
   Object.assign(NOTE, { ma: ma || '', so: 0, nd: store.get('la-note-nhap') || '', tuMa: !!ma, tuSo: false, cand: [], chac: false, busy: false, err: '', moi: { kh: '', ten: '', makh: '', lh: '', sdt: '', sp: '', tuMa: false } });
   if (NOTE.nd) doanNote();
   moP('note'); setTimeout(() => { const t = $('#nt'); if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }, 80);
@@ -967,6 +1045,10 @@ async function luuNote(xong) {
   const v = NOTE.nd.trim();
   if (!v) { NOTE.err = 'Anh gõ nội dung ghi chú trước.'; paintNS(); return; }
   if (!NOTE.ma) { NOTE.err = 'Anh chọn đơn hàng, hoặc chọn "Việc chung".'; paintNS(); return; }
+  if (NOTE.files.length && NOTE.ma === 'CHUNG') { NOTE.err = 'Việc chung không có thư mục để lưu file: anh chọn 1 đơn, hoặc bỏ file đính kèm.'; paintNS(); return; }
+  const thieuLoai = NOTE.files.filter((x) => !x.k);
+  if (thieuLoai.length) { NOTE.err = 'Anh chọn loại hồ sơ cho: ' + thieuLoai.map((x) => x.f.name).join(', '); paintNS(); return; }
+  const fl = NOTE.files.slice(), ndGui = v + (fl.length ? ' 📎 ' + fl.map((x) => x.f.name).join(', ') : '');
   let moi = null;
   if (NOTE.ma === 'MOI') {
     const M = NOTE.moi, khMoi = M.kh === '__new', makh = khMoi ? sachMaKh(M.makh) : M.kh;
@@ -981,14 +1063,16 @@ async function luuNote(xong) {
   NOTE.busy = true; NOTE.err = ''; paintNS();
   const ma = NOTE.ma, so = NOTE.so;
   try {
-    const r = await api({ action: 'note', ma: ma === 'CHUNG' || ma === 'MOI' ? '' : ma, so, nd: v, xong: !!xong, moi });
-    if (r.moi) { store.set('la-note-nhap', null); NOTE.nd = ''; NOTE.busy = false; dongP(); toast('Đã mở đơn ' + r.moi.ma + ' (Bid)'); S.moSau = r.moi.ma; load(S.code); return; }
+    const r = await api({ action: 'note', ma: ma === 'CHUNG' || ma === 'MOI' ? '' : ma, so, nd: ndGui, xong: !!xong, moi });
+    NOTE.files = [];
+    if (r.moi) { store.set('la-note-nhap', null); NOTE.nd = ''; NOTE.busy = false; dongP(); toast('Đã mở đơn ' + r.moi.ma + ' (Bid)'); S.moSau = fl.length ? { ma: r.moi.ma, muc: 'hoso' } : r.moi.ma; load(S.code); if (fl.length) guiFileNote(r.moi.ma, fl); return; }
     (S.data.notes = S.data.notes || []).unshift(r.note);
     if (r.note.xong) { const o = S.data.orders.find((x) => x.ma === ma), s = o && o.steps.find((x) => x.so === so); if (s) { s.tt = 'Xong'; s.xong = S.data.today; o.daXong = o.steps.filter((x) => x.tt === 'Xong').length; o.cur = o.steps.find((x) => x.tt !== 'Xong') || null; } }
     store.set('la-note-nhap', null); NOTE.nd = ''; NOTE.busy = false;
     dongP(); render();
     toast('Đã ghi vào ' + tenDon(ma) + (so ? ' · ' + STEP[so - 1] : '') + (r.note.xong ? ' ✓' : ''));
     load(S.code);
+    if (fl.length) setTimeout(() => guiFileNote(ma, fl), 600);
   } catch (e) { NOTE.busy = false; NOTE.err = 'Chưa lưu được: ' + e.message; paintNS(); }
 }
 document.addEventListener('input', (e) => {
@@ -1005,12 +1089,15 @@ document.addEventListener('input', (e) => {
 document.addEventListener('change', (e) => {
   if (e.target.id === 'ndon') { NOTE.ma = e.target.value; NOTE.tuMa = true; NOTE.err = ''; if (NOTE.ma === 'MOI') { NOTE.so = 0; paintNS(); return; } if (!NOTE.tuSo) { NOTE.so = 0; doanNote(); } else { const o = S.data.orders.find((x) => x.ma === NOTE.ma); if (!o || !(o.steps || []).some((s) => s.so === NOTE.so)) NOTE.so = 0; } paintNS(); }
   else if (e.target.id === 'nbuoc') { NOTE.so = +e.target.value; NOTE.tuSo = true; paintNS(); }
+  else if (e.target.dataset && e.target.dataset.nfloai != null) { const x = NOTE.files[+e.target.dataset.nfloai]; if (x) { x.k = e.target.value; x.chon = true; NOTE.err = ''; } }
   else if (e.target.id === 'nkh') { NOTE.moi.kh = e.target.value; NOTE.err = ''; paintNS(); }
 });
 document.addEventListener('click', (e) => {
   const n = e.target.closest('[data-nnew]'); if (n) { moNote(n.dataset.nnew || S.open || ''); return; }
   const c = e.target.closest('[data-nma]'); if (c) { NOTE.ma = c.dataset.nma; NOTE.tuMa = true; NOTE.chac = true; NOTE.err = ''; if (!NOTE.tuSo) { NOTE.so = 0; doanNote(); } paintNS(); return; }
   const l = e.target.closest('[data-nluu]'); if (l && !NOTE.busy) { luuNote(l.dataset.nluu === '1'); return; }
+  if (e.target.closest('[data-nfadd]') && !NOTE.busy) { chonFile('', '', (files) => { files.forEach((f) => NOTE.files.push({ f, k: '', chon: false, url: /^image\//.test(f.type || '') ? URL.createObjectURL(f) : '' })); NOTE.err = ''; paintNS(); }); return; }
+  const fb = e.target.closest('[data-nfbo]'); if (fb) { const x = NOTE.files.splice(+fb.dataset.nfbo, 1)[0]; if (x && x.url) URL.revokeObjectURL(x.url); paintNS(); return; }
   const m = e.target.closest('[data-nopen]'); if (m) { dongP(); dongTim(); S.open = m.dataset.nopen; render(); }
 });
 
