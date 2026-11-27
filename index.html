@@ -172,6 +172,20 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 .lbx{position:fixed;inset:0;z-index:120;background:rgba(20,16,14,.92);display:grid;place-items:center;padding:20px}
 .lbx img{max-width:100%;max-height:80vh;border-radius:10px;background:#fff}
 .lbx button{position:absolute;top:calc(14px + env(safe-area-inset-top));right:14px;width:42px;height:42px;border-radius:21px;border:0;background:var(--kem);font-size:18px}
+/* Xem file ngay trong app (27/11 22:20): PDF, Excel, Word/PowerPoint; không nhảy sang link tải OneDrive */
+.xem{position:fixed;inset:0;z-index:115;background:#3B3633;display:flex;flex-direction:column}.xem[hidden]{display:none}
+.xemh{flex:none;display:flex;align-items:center;gap:6px;padding:calc(8px + env(safe-area-inset-top)) 8px 8px;background:var(--son2);color:var(--kem)}
+.xemh b{flex:1;min-width:0;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.xemh button{flex:none;border:0;border-radius:10px;background:rgba(247,242,233,.16);color:var(--kem);font:inherit;font-size:15px;font-weight:700;min-width:40px;height:38px;padding:0 10px;cursor:pointer}.xemh button[hidden]{display:none}
+.xemb{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;padding:10px 0 calc(16px + env(safe-area-inset-bottom))}
+.xemp{display:block;margin:0 auto 10px;background:#fff;box-shadow:0 1px 5px rgba(0,0,0,.35)}
+.xemm{color:var(--kem);text-align:center;padding:48px 24px;font-size:14px;line-height:1.6}.xemm small{opacity:.75}
+.xemm .xemo{margin-top:6px;border:0;border-radius:10px;background:var(--kem);color:var(--son);font:inherit;font-weight:700;padding:10px 16px;cursor:pointer}
+.xsp{display:inline-block;width:28px;height:28px;border-radius:50%;border:3px solid rgba(247,242,233,.3);border-top-color:var(--kem);animation:xoay .8s linear infinite;margin-bottom:6px}
+.xemt{display:flex;gap:6px;overflow-x:auto;padding:0 8px 8px}.xemt button{flex:none;border:0;border-radius:8px;background:rgba(247,242,233,.16);color:var(--kem);font:inherit;font-size:13px;padding:6px 10px;cursor:pointer}.xemt button[aria-pressed="true"]{background:var(--kem);color:var(--son);font-weight:700}
+.xemx{background:#fff;margin:0 8px;border-radius:10px;overflow:auto}.xemx table{border-collapse:collapse;font-size:12.5px;color:var(--muc)}.xemx td,.xemx th{border:1px solid var(--ke);padding:4px 8px;white-space:nowrap;vertical-align:top}.xemx td[data-t="n"]{text-align:right}.xemx td.dai{white-space:normal;min-width:150px;max-width:200px}
+.xemf{display:block;width:100%;height:100%;border:0;background:#fff}
+.tqr{flex:none;display:flex;align-items:flex-start;gap:6px}.tqg{flex:none;border:1px solid var(--ke);background:#fff;color:var(--son);font:inherit;font-size:11.5px;font-weight:700;border-radius:999px;padding:3px 8px;cursor:pointer;white-space:nowrap;align-self:flex-start}
 /* Hộp thư đến + thông báo */
 .hopb{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));z-index:40;border:0;border-radius:999px;background:var(--muc);color:var(--kem);padding:12px 18px;font-size:14.5px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.28);cursor:pointer;white-space:nowrap}
 .hopb[hidden]{display:none}
@@ -420,6 +434,7 @@ function rutGon(o) {
   r.thieu = th.slice(0, 4);
   return r;
 }
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-tqgon]'); if (!b || !S.open) return; TQ_GON.v = !TQ_GON.v; store.set('la-tq-gon', TQ_GON.v ? '1' : null); const el = document.getElementById('ttdon'), o = S.data.orders.find((x) => x.ma === S.open); if (el && o) el.innerHTML = vTT(o); });
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-tqct]'); if (!b || !S.open) return; if (TQ_MO.has(S.open)) TQ_MO.delete(S.open); else TQ_MO.add(S.open); const el = document.getElementById('ttdon'), o = S.data.orders.find((x) => x.ma === S.open); if (el && o) el.innerHTML = vTT(o); });
 /* DTKP gõ bằng chữ (anh Nix 27/11 21:14): ghi chú nhanh của đơn ở bước DTKP, hoặc mở đầu "Dự trù kinh phí"/"DTKP",
    app tự tách từng khoản, đọc số tiền (500k, 1tr2, 1,5tr, 1.200.000đ, "24 ram x 511.000", "… = 12.264.000"), cộng tổng và trình bày gọn.
@@ -631,6 +646,7 @@ document.addEventListener('click', (e) => {
 /* Tổng quan đơn (27/11): lấy từ tab "Báo giá" (S.data.bg[mã đơn]); chưa có báo giá thì rút gọn từ ghi chú sổ. */
 const soVN = (n) => n == null ? '' : (+n).toLocaleString('vi-VN', { maximumFractionDigits: 2 });
 const TQ_MO = new Set(); /* đơn đang mở phần Chi tiết của Tổng quan */
+const TQ_GON = { v: store.get('la-tq-gon') === '1' }; /* 27/11 anh Nix: nút thu gọn khung Tổng quan đơn hàng; nhớ trên máy, áp dụng mọi đơn */
 function vTT(o) {
   const bgAll = S.data.bg || {}, B = bgAll[o.ma] || bgAll[Object.keys(bgAll).find((k) => k.toLowerCase() === String(o.ma).toLowerCase())];
   const r = rutGon(o); r.tt = String(r.tt || '').replace(/^Tt\b/, 'Thanh toán');
@@ -656,8 +672,10 @@ function vTT(o) {
   }
   const han = o.han ? dm(o.han) : o.hanText;
   const cuoi = [`Giao <b>${han ? esc(han) : 'chưa có'}</b>`, o.dt > 0 || o.daThu > 0 ? `Đã thu <b>${gon(o.daThu)}</b>` : '', o.dt > 0 ? (o.phaiThu > 0 ? `Còn <b class="no">${gon(o.phaiThu)}</b>` : '<b class="ok">Thu đủ</b>') : ''].filter(Boolean).join(' · ');
-  const mo = TQ_MO.has(o.ma);
-  return `<div class="tqh"><span class="hlab">Tổng quan đơn hàng${coBG ? '' : '<span>chưa có báo giá</span>'}</span>${tong}</div>${hang}${lech}<div class="tqf"><span>${cuoi}</span><button class="tqb" data-tqct aria-expanded="${mo}">Chi tiết ${mo ? '▴' : '▾'}</button></div>${mo ? `<div class="tqct">${vCT(o, B, r, { co, truoc, vm, ks, vs, tc, chuaRo, coBG })}</div>` : ''}`;
+  const mo = TQ_MO.has(o.ma), tqGon = TQ_GON.v;
+  const dau = `<div class="tqh"><span class="hlab">Tổng quan đơn hàng${coBG ? '' : '<span>chưa có báo giá</span>'}</span><span class="tqr">${tong}<button class="tqg" data-tqgon aria-expanded="${!tqGon}">${tqGon ? 'Mở ▾' : 'Thu gọn ▴'}</button></span></div>`;
+  if (tqGon) return `${dau}<div class="tqf"><span>${cuoi}</span></div>`;
+  return `${dau}${hang}${lech}<div class="tqf"><span>${cuoi}</span><button class="tqb" data-tqct aria-expanded="${mo}">Chi tiết ${mo ? '▴' : '▾'}</button></div>${mo ? `<div class="tqct">${vCT(o, B, r, { co, truoc, vm, ks, vs, tc, chuaRo, coBG })}</div>` : ''}`;
 }
 const NHAN_ANH = { mau: 'Mẫu duyệt', anh: 'Ảnh thực tế', bg: 'Báo giá', kh: 'Khách gửi', hd: 'Chứng từ chốt', gh: 'Phiếu giao', nt: 'Chứng từ thu', hdk: 'Hóa đơn', lsx: 'Lệnh SX', fsx: 'File SX', dtkp: 'DTKP' };
 /* Phần "Chi tiết" (16:15 anh Nix: soạn lại cho đẹp, xổ ra đầy đủ, kèm hình ảnh) */
@@ -883,7 +901,7 @@ function render() {
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.31'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.32'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
@@ -1090,13 +1108,153 @@ document.addEventListener('click', (e) => {
     api({ action: 'xoa', id: v.dataset.fdel }).then(() => hsLoad(S.open, true, true)).catch((x) => alert(x.message)); return;
   }
   const id = v.dataset.fview || v.dataset.fopen, f = HS.d && HS.d.files.find((x) => x.id === id);
-  /* Có link tải sẵn còn hạn (dưới 45 phút) thì mở ngay, không phải chờ máy chủ */
-  if (f && f.url && HS.d.luc && Date.now() - HS.d.luc < 45 * 60000) { if (v.dataset.fopen) window.open(f.url, '_blank') || (location.href = f.url); else openLb(f.url); return; }
-  const w = v.dataset.fopen ? window.open('', '_blank') : null;
+  /* Có link tải sẵn còn hạn (dưới 45 phút) thì dùng ngay, không phải chờ máy chủ */
+  const conHan = !!(f && f.url && HS.d.luc && Date.now() - HS.d.luc < 45 * 60000);
+  const layLink = () => api({ action: 'tai', id }).then((r) => { if (!r || !r.url) throw new Error('Chưa lấy được link file, anh thử lại.'); return r.url; });
+  /* 27/11 22:20 anh Nix: "mở các file lâu quá, cứ load hoài" (link tải OneDrive trên iPhone quay mãi) → xem ngay trong app */
+  if (v.dataset.fopen) { xemFile(conHan ? f.url : layLink, f ? f.ten : 'File', f ? f.loai : ''); return; }
+  if (conHan) { openLb(f.url); return; }
   v.disabled = true;
-  api({ action: 'tai', id }).then((r) => { v.disabled = false; if (!r || !r.url) throw new Error('Chưa lấy được link file, anh thử lại.'); if (w) w.location.href = r.url; else if (v.dataset.fopen) location.href = r.url; else openLb(r.url); })
-    .catch((x) => { v.disabled = false; if (w) w.close(); alert(x.message); });
+  layLink().then((u) => { v.disabled = false; openLb(u); }).catch((x) => { v.disabled = false; alert(x.message); });
 }, true);
+/* ---------- Xem file ngay trong app (27/11/2026) ----------
+   Trước đây nút Mở nhảy sang link tải của OneDrive (microsoftpersonalcontent.com): link dạng "tải về" nên trình duyệt
+   nhỏ của iPhone quay mãi. Nay app tự tải nội dung file rồi vẽ trong khung: PDF bằng pdf.js, Excel/CSV bằng SheetJS
+   (2 thư viện để sẵn trong lib/, chỉ nạp khi mở loại file đó), ảnh bằng khung xem ảnh, Word/PowerPoint bằng trình xem
+   Office của Microsoft. Nút ⤴: chia sẻ file (Zalo, Mail…) hoặc lưu vào Tệp. Không tải được thì có nút mở bằng trình duyệt. */
+const XEM = { n: 0, ten: '', url: '', blob: null, pdf: null, wb: null, z: 1, io: null };
+const LIBJS = {};
+function napJS(src, ten) {
+  if (window[ten]) return Promise.resolve(window[ten]);
+  return LIBJS[src] || (LIBJS[src] = new Promise((ok, loi) => {
+    const s = document.createElement('script'); s.src = src; s.async = true;
+    s.onload = () => (window[ten] ? ok(window[ten]) : loi(new Error('Không nạp được bộ xem file.')));
+    s.onerror = () => { delete LIBJS[src]; loi(new Error('Không nạp được bộ xem file, anh kiểm tra mạng rồi thử lại.')); };
+    document.head.appendChild(s);
+  }));
+}
+function kieuXem(ten, loai) {
+  const e = (String(ten).match(/\.([a-z0-9]+)$/i) || ['', ''])[1].toLowerCase(), m = String(loai || '').toLowerCase();
+  if (e === 'pdf' || m === 'application/pdf') return 'pdf';
+  if (/^(xlsx|xlsm|xls|csv|ods)$/.test(e) || /spreadsheet|excel|text\/csv/.test(m)) return 'xls';
+  if (/^image\//.test(m) || /^(jpe?g|png|gif|webp|bmp)$/.test(e)) return 'anh';
+  if (/^(docx?|pptx?)$/.test(e) || /wordprocessing|msword|presentation|powerpoint/.test(m)) return 'office';
+  return '';
+}
+function xemKhung() {
+  let d = document.getElementById('xem'); if (d) return d;
+  d = document.createElement('div'); d.id = 'xem'; d.className = 'xem'; d.hidden = true; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true');
+  d.innerHTML = '<div class="xemh"><button data-xem="dong" aria-label="Đóng">✕</button><b id="xem-t"></b><button data-xem="nho" aria-label="Thu nhỏ" hidden>－</button><button data-xem="lon" aria-label="Phóng to" hidden>＋</button><button data-xem="chia" aria-label="Chia sẻ hoặc lưu file" hidden>⤴</button></div><div class="xemb" id="xem-b"></div>';
+  document.body.appendChild(d); return d;
+}
+const xemBody = (html) => { const b = document.getElementById('xem-b'); if (b) b.innerHTML = html; };
+const xemMsg = (html) => xemBody(`<div class="xemm">${html}</div>`);
+function dongXem() {
+  const d = document.getElementById('xem'); XEM.n++; if (XEM.io) { XEM.io.disconnect(); XEM.io = null; }
+  if (XEM.pdf) { try { XEM.pdf.destroy(); } catch (e) {} }
+  Object.assign(XEM, { url: '', blob: null, pdf: null, wb: null });
+  if (d) { d.hidden = true; xemBody(''); }
+  document.documentElement.style.overflow = '';
+}
+async function xemFile(src, ten, loai) {
+  const k = kieuXem(ten, loai), d = xemKhung(), n = ++XEM.n;
+  Object.assign(XEM, { ten: ten || 'file', url: '', blob: null, pdf: null, wb: null, z: 1 });
+  if (XEM.io) { XEM.io.disconnect(); XEM.io = null; }
+  document.getElementById('xem-t').textContent = ten || 'File';
+  d.querySelectorAll('[data-xem="nho"],[data-xem="lon"]').forEach((b) => { b.hidden = k !== 'pdf'; });
+  d.querySelector('[data-xem="chia"]').hidden = true;
+  xemMsg('<span class="xsp"></span><br>Đang mở file…'); d.hidden = false; document.documentElement.style.overflow = 'hidden';
+  try {
+    const url = typeof src === 'function' ? await src() : src; if (n !== XEM.n) return; XEM.url = url;
+    if (k === 'anh') { dongXem(); openLb(url); return; }
+    if (k === 'office') {
+      xemBody(`<iframe class="xemf" src="https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}" title="${esc(ten)}"></iframe>`);
+      d.querySelector('[data-xem="chia"]').hidden = false;
+      fetch(url).then((r) => (r.ok ? r.blob() : null)).then((b) => { if (b && n === XEM.n) XEM.blob = b; }).catch(() => {});
+      return;
+    }
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('OneDrive báo lỗi ' + r.status + (r.status === 401 || r.status === 403 ? ': link đã hết hạn, anh bấm làm mới rồi mở lại.' : '.'));
+    const blob = await r.blob(); if (n !== XEM.n) return;
+    XEM.blob = blob; d.querySelector('[data-xem="chia"]').hidden = false;
+    if (k === 'pdf') await xemPDF(blob, n);
+    else if (k === 'xls') await xemXLS(blob, n, ten);
+    else xemMsg(`File ${esc(ext(ten))} chưa xem được trong app.<br>Bấm ⤴ để mở bằng ứng dụng khác hoặc lưu vào máy.`);
+  } catch (x) {
+    if (n !== XEM.n) return;
+    xemMsg(`Không mở được file trong app.<br><small>${esc((x && x.message) || String(x))}</small><br><br><button class="xemo" data-xem="ngoai">Mở bằng trình duyệt</button>`);
+  }
+}
+async function xemPDF(blob, n) {
+  const lib = await napJS('./lib/pdf.min.js', 'pdfjsLib'); if (n !== XEM.n) return;
+  lib.GlobalWorkerOptions.workerSrc = new URL('./lib/pdf.worker.min.js', location.href).href;
+  const pdf = await lib.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) }).promise;
+  if (n !== XEM.n) { pdf.destroy(); return; }
+  XEM.pdf = pdf; await vePDF(n);
+}
+/* Vẽ trang khi cuộn tới (đỡ tốn bộ nhớ iPhone với file in nhiều trang); trang đi xa thì xoá hình, cuộn lại thì vẽ lại */
+async function vePDF(n) {
+  const pdf = XEM.pdf, b = document.getElementById('xem-b'); if (!pdf || !b || n !== XEM.n) return;
+  if (XEM.io) { XEM.io.disconnect(); XEM.io = null; }
+  const W = Math.floor(Math.min(Math.max(b.clientWidth - 16, 200), 900) * XEM.z), dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const p1 = await pdf.getPage(1), v1 = p1.getViewport({ scale: 1 }); if (n !== XEM.n) return;
+  b.innerHTML = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const c = document.createElement('canvas'); c.className = 'xemp'; c.dataset.p = i;
+    c.style.width = W + 'px'; c.style.height = Math.round(W * v1.height / v1.width) + 'px'; b.appendChild(c);
+  }
+  const ve = async (c) => {
+    if (c.dataset.ve) return; c.dataset.ve = '1';
+    try {
+      const pg = await pdf.getPage(+c.dataset.p), v = pg.getViewport({ scale: 1 }), vp = pg.getViewport({ scale: W / v.width * dpr });
+      if (n !== XEM.n) return;
+      c.width = Math.floor(vp.width); c.height = Math.floor(vp.height); c.style.height = Math.round(W * v.height / v.width) + 'px';
+      await pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+    } catch (e) { delete c.dataset.ve; }
+  };
+  XEM.io = new IntersectionObserver((es) => es.forEach((e) => {
+    const c = e.target;
+    if (e.isIntersecting) ve(c);
+    else if (c.dataset.ve && pdf.numPages > 4) { c.width = 0; c.height = 0; delete c.dataset.ve; }
+  }), { root: b, rootMargin: '1500px 0px' });
+  b.querySelectorAll('canvas').forEach((c) => XEM.io.observe(c));
+}
+async function xemXLS(blob, n, ten) {
+  const X = await napJS('./lib/xlsx.full.min.js', 'XLSX'); if (n !== XEM.n) return;
+  XEM.wb = /\.csv$/i.test(ten || '') ? X.read(await blob.text(), { type: 'string' }) : X.read(new Uint8Array(await blob.arrayBuffer()), { type: 'array' });
+  veSheet(0);
+}
+function veSheet(i) {
+  const X = window.XLSX, wb = XEM.wb; if (!X || !wb) return;
+  const an = (s) => { const w = ((wb.Workbook || {}).Sheets || []).find((x) => x.name === s); return w && w.Hidden; };
+  const ds = wb.SheetNames.filter((s) => !an(s)), ten = ds[i] || ds[0], ws = wb.Sheets[ten];
+  const bang = ws && ws['!ref'] ? X.utils.sheet_to_html(ws, { header: '', footer: '' }) : '<p style="padding:16px">Trang tính trống.</p>';
+  xemBody((ds.length > 1 ? `<div class="xemt">${ds.map((s, k) => `<button data-xsh="${k}" aria-pressed="${s === ten}">${esc(s)}</button>`).join('')}</div>` : '') + `<div class="xemx">${bang}</div>`);
+  /* chữ dài (tiêu đề, ghi chú) thì xuống dòng, cột số giữ 1 dòng */
+  document.querySelectorAll('#xem-b .xemx td').forEach((td) => { if ((td.textContent || '').length > 28) td.classList.add('dai'); });
+}
+async function chiaXem() {
+  const ten = XEM.ten || 'file', b = XEM.blob;
+  if (!b) { if (XEM.url) window.open(XEM.url, '_blank') || (location.href = XEM.url); return; }
+  const f = new File([b], ten, { type: b.type || 'application/octet-stream' });
+  if (navigator.canShare && navigator.canShare({ files: [f] })) { try { await navigator.share({ files: [f], title: ten }); } catch (e) {} return; }
+  const u = URL.createObjectURL(b), a = document.createElement('a'); a.href = u; a.download = ten; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000);
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-xem],[data-xsh]'); if (!b) return;
+  if (b.dataset.xsh) { veSheet(+b.dataset.xsh); return; }
+  const a = b.dataset.xem;
+  if (a === 'dong') dongXem();
+  else if (a === 'chia') chiaXem();
+  else if (a === 'ngoai') { if (XEM.url) window.open(XEM.url, '_blank') || (location.href = XEM.url); }
+  else if ((a === 'lon' || a === 'nho') && XEM.pdf) {
+    const Z = [1, 1.5, 2, 3], i = Math.max(0, Z.indexOf(XEM.z)), j = Math.max(0, Math.min(Z.length - 1, i + (a === 'lon' ? 1 : -1)));
+    if (Z[j] === XEM.z) return;
+    const bx = document.getElementById('xem-b'), t = bx.scrollTop / (bx.scrollHeight || 1); XEM.z = Z[j];
+    vePDF(XEM.n).then(() => { bx.scrollTop = t * bx.scrollHeight; });
+  }
+});
+document.addEventListener('keydown', (e) => { const d = document.getElementById('xem'); if (e.key === 'Escape' && d && !d.hidden) dongXem(); });
 /* ---------- Hộp thư đến: file gửi từ phím tắt iPhone (nằm tạm trên OneDrive) hoặc chia sẻ trên Android (nằm tạm trong máy) ---------- */
 const HOP = { ds: [], loc: [], ma: '', q: '', loai: {}, don: {}, tu: {}, cuoi: '', busy: false, err: '' }; /* don: đơn của từng file (mỗi file có thể vào 1 đơn khác nhau) */
 const POV = { mode: '' };
