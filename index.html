@@ -210,6 +210,10 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 .bpq{font-size:13.5px;line-height:1.45;margin-bottom:4px}.bpb2{margin-top:8px;border:1px solid var(--ke);background:#fff;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:600;color:var(--nhat);cursor:pointer}
 .hgf{margin-top:10px}.hgf label{display:block;font-size:11px;font-weight:700;color:var(--nhat);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
 .hgr{display:flex;gap:6px;align-items:center}.hgr input{flex:1;min-width:0;min-height:40px;border:1px solid var(--ke);border-radius:10px;padding:6px 8px;background:#fff;font:inherit;font-size:15px;color:var(--muc)}.hgr input[type=time]{flex:0 0 108px}
+.mt small{font-size:10px;line-height:1;color:var(--nhat);font-variant-numeric:tabular-nums}.mt.x small{color:var(--ok)}.mt.t small{color:var(--bad);font-weight:700}
+.bdf{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.bdf label{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:700;color:var(--nhat);text-transform:uppercase;letter-spacing:.04em}
+.bdf input{min-width:0;min-height:40px;border:1px solid var(--ke);border-radius:10px;padding:6px 8px;background:#fff;font:inherit;font-size:15px;color:var(--muc);text-transform:none;letter-spacing:0;font-weight:400}.bdf .hgs{grid-column:1/-1}
+.nlb{display:block;font-size:11px;font-weight:700;color:var(--nhat);text-transform:uppercase;letter-spacing:.04em}.nlb input{margin-top:3px;text-transform:none;letter-spacing:0;font-weight:400}
 .hgs{flex:none;min-height:40px;border:0;border-radius:10px;background:var(--son);color:var(--kem);font-weight:700;padding:0 14px;cursor:pointer}.hgs:disabled{opacity:.6}
 .nhg{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--ke)}.nhg:first-of-type{border-top:0}.nhg .hgf{margin:0;flex:1.3}
 .nhm{flex:1;text-align:left;background:none;border:0;padding:0;font:inherit;font-size:13.5px;font-weight:600;color:var(--muc);cursor:pointer;min-width:0}.nhm small{display:block;font-weight:400;color:var(--nhat);font-size:12px}
@@ -439,15 +443,33 @@ document.addEventListener('click', async (e) => {
     render(); load(S.code);
   } catch (err) { alert('Chưa lưu được: ' + err.message); b.disabled = false; b.textContent = 'Lưu'; }
 });
+/* Sửa ngày từng khâu (anh Nix 27/11/2026): ai trong 3 người cũng sửa được; ghi cột E (Bắt đầu), F (Hạn xong), G (Ngày xong) tab Tiến độ */
+const bdForm = (s) => `<div class="bdf"><label>Bắt đầu<input type="date" data-bd value="${esc(s.bd || '')}"></label>${s.so === 8 ? '' : `<label>Hạn xong<input type="date" data-hx value="${esc(s.hx || '')}"></label>`}${s.tt === 'Xong' ? `<label>Ngày xong<input type="date" data-nx value="${esc(s.xong || '')}"></label>` : ''}<button class="hgs" data-bdl>Lưu ngày</button></div>`;
+function ttBuoc(s, today) { return s.xong ? 'Xong' : !s.hx ? 'Chưa làm' : today > s.hx ? 'Trễ' : s.bd && today >= s.bd ? 'Đang làm' : 'Chưa làm'; }
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-bdl]'); if (!b || !S.open || BP.ma !== S.open || !BP.so) return;
+  const w = b.closest('.bdf'), g = (k) => { const el = w.querySelector('[data-' + k + ']'); return el ? el.value : undefined; };
+  const ma = S.open, so = BP.so, bd = g('bd'), hx = g('hx'), nx = g('nx');
+  if (nx === '') { alert('Ngày xong không để trống được. Muốn bỏ xong thì bấm Bỏ xác nhận.'); return; }
+  if (bd && hx && hx < bd) { alert('Hạn xong đang trước ngày bắt đầu, anh kiểm tra lại.'); return; }
+  b.disabled = true; b.textContent = 'Đang lưu…';
+  try {
+    await api({ action: 'buocngay', ma, so, bd, hx, nx });
+    const o = S.data.orders.find((x) => x.ma === ma), s = o && o.steps.find((x) => x.so === so);
+    if (s) { s.bd = bd || ''; if (hx !== undefined) s.hx = hx || ''; if (nx) s.xong = nx; s.tt = ttBuoc(s, S.data.today); if (so === 8 && hx !== undefined) o.han = s.hx; }
+    paintTL(); toast('Đã lưu ngày bước ' + (STEP[so - 1] || so)); load(S.code);
+  } catch (err) { alert('Chưa lưu được: ' + err.message); b.disabled = false; b.textContent = 'Lưu ngày'; }
+});
 function vTL(o) {
   if (!o.steps.length) return '<div class="mut">Đơn chưa có tiến độ trong sổ. Khi đơn chuyển Run, máy chủ tự tạo 10 bước trong vòng 5 phút.</div>';
   const sel = BP.ma === o.ma ? BP.so : 0;
-  const metro = o.steps.map((s, i) => { const cls = s.tt === 'Xong' ? 'x' : s.tt === 'Trễ' ? 't' : o.cur && o.cur.so === s.so ? 'c' : ''; const nx = o.steps[i + 1]; return `<div class="mt ${cls} ${sel === s.so ? 'sel' : ''}" role="button" tabindex="0" data-buoc="${s.so}" style="--ln:${s.tt === 'Xong' && nx ? '#2F7A4B' : '#E6DCCD'}"><i>${s.tt === 'Xong' ? '✓' : s.so}</i><span>${SHORT[s.so - 1] || esc(s.ten)}</span></div>`; }).join('');
+  const metro = o.steps.map((s, i) => { const cls = s.tt === 'Xong' ? 'x' : s.tt === 'Trễ' ? 't' : o.cur && o.cur.so === s.so ? 'c' : ''; const nx = o.steps[i + 1]; return `<div class="mt ${cls} ${sel === s.so ? 'sel' : ''}" role="button" tabindex="0" data-buoc="${s.so}" style="--ln:${s.tt === 'Xong' && nx ? '#2F7A4B' : '#E6DCCD'}"><i>${s.tt === 'Xong' ? '✓' : s.so}</i><span>${SHORT[s.so - 1] || esc(s.ten)}</span><small>${s.tt === 'Xong' ? dm(s.xong) || '✓' : s.hx ? dm(s.hx) : '–'}</small></div>`; }).join('');
   const s = sel && o.steps.find((x) => x.so === sel);
   const tag = (t) => `<span class="tag ${t === 'Xong' ? 't-ok' : t === 'Trễ' ? 't-bad' : t === 'Đang làm' ? 't-run' : 't-idle'}">${esc(t)}</span>`;
   const bp = s ? `<div class="bp"><div class="bph"><b>${s.so}. ${esc(STEP[s.so - 1] || s.ten)}</b>${tag(s.tt)}</div>
     <div class="bpq">Xong khi: ${esc(QDB[s.so - 1] || '')}</div>
     <div class="mut">${esc(s.ai || '')}${s.tt === 'Xong' ? ' · xong ' + dm(s.xong) : s.hx ? ' · hạn ' + dm(s.hx) : ' · chưa có hạn'}${s.viec ? ' · ' + esc(s.viec) : ''}</div>
+    ${bdForm(s)}
     ${noteBuoc(o, s.so)}
     ${s.so === 8 ? hgForm(o, (String(s.viec || '').match(/^Giao lúc (\d{1,2}:\d{2})/) || [])[1] || '') : ''}
     ${s.so >= 10 ? '<div class="mut" style="margin-top:6px">Bước này tự chuyển khi đơn Done.</div>' : s.tt === 'Xong' ? `<button class="bpb2" data-bxn="0">Bỏ xác nhận</button>` : `<button class="hgo" data-bxn="1" style="margin-top:8px">✓ Xác nhận đã xong</button>`}</div>` : '<div class="mut" style="margin-top:8px">Bấm vào từng bước để xem khi nào xong và xác nhận.</div>';
@@ -514,7 +536,7 @@ function render() {
   paintNoteBtn();
 }
 
-const APP_VER = '2026-11-27.4'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.5'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
@@ -805,7 +827,26 @@ async function boHop(key) {
 
 /* ---------- Ghi chú nhanh (anh Nix 27/11/2026): gõ 1 câu, app tự đoán đơn + bước tiến độ, người ghi bấm 1 lần để lưu.
    Báo xong thì hỏi rồi mới tick bước. Lưu vào sổ (tab "Ghi chú nhanh" + cột Ghi chú của bước), báo 2 người còn lại. ---------- */
-const NOTE = { ma: '', so: 0, nd: '', tuMa: false, tuSo: false, cand: [], chac: false, busy: false, err: '' };
+const NOTE = { ma: '', so: 0, nd: '', tuMa: false, tuSo: false, cand: [], chac: false, busy: false, err: '', moi: { kh: '', ten: '', makh: '', lh: '', sdt: '', sp: '', tuMa: false } };
+/* Đơn mới / khách mới từ ghi chú: mã đơn <MÃ KH> <Sản phẩm không dấu> <yymm>[NN], trạng thái Bid */
+const BO_TU = /\b(cong ty|cty|tnhh|co phan|cp|mtv|thuong mai|dich vu|san xuat|tm|dv|sx|xnk|xuat nhap khau|viet nam|vn|tap doan|chi nhanh)\b/g;
+const goiYMaKh = (ten) => { const t = nd(ten).replace(BO_TU, ' ').replace(/[^a-z0-9]/g, '').toUpperCase(); return (t || nd(ten).replace(/[^a-z0-9]/g, '').toUpperCase()).slice(0, 12); };
+const sachMaKh = (x) => nd(x).replace(/[^a-z0-9]/g, '').toUpperCase().slice(0, 20);
+const maSp = (x) => { const t = nd(x).replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 30); return t ? t[0].toUpperCase() + t.slice(1) : ''; };
+function maPrev() {
+  const M = NOTE.moi, kh = M.kh === '__new' ? sachMaKh(M.makh) : M.kh, sp = maSp(M.sp), td = String(S.data.today || ''), yymm = td.slice(2, 4) + td.slice(5, 7);
+  if (!kh || !sp) return '…';
+  const goc = kh + ' ' + sp + ' ' + yymm, fg = nd(goc), dem = S.data.orders.filter((o) => { const f = nd(o.ma); return f === fg || (f.startsWith(fg) && /^\d{2}$/.test(f.slice(fg.length))); }).length;
+  return dem ? goc + String(dem + 1).padStart(2, '0') : goc;
+}
+function vMoi() {
+  const M = NOTE.moi, K = (S.data.khach || []).slice().sort((a, b) => nd(a.ten || a.ma).localeCompare(nd(b.ten || b.ma)));
+  return `<div class="hlab">Khách hàng</div><select id="nkh" class="subsel" style="margin-top:0" aria-label="Khách hàng"><option value="">— Chọn khách —</option><option value="__new" ${M.kh === '__new' ? 'selected' : ''}>➕ Khách mới</option>${K.map((k) => `<option value="${esc(k.ma)}" ${M.kh === k.ma ? 'selected' : ''}>${esc(k.ten || k.ma)} (${esc(k.ma)})</option>`).join('')}</select>
+    ${M.kh === '__new' ? `<label class="nlb">Tên khách<input id="nkten" class="subsel" style="margin-top:0" placeholder="Tên khách, vd Công ty Bao bì Sao Mai" value="${esc(M.ten)}" autocomplete="off"></label><label class="nlb">Mã khách (dùng đặt mã đơn)<input id="nkma" class="subsel" style="margin-top:0" placeholder="Mã khách: viết liền, không dấu" value="${esc(M.makh)}" autocomplete="off" autocapitalize="characters"></label><label class="nlb">Người liên hệ<input id="nklh" class="subsel" style="margin-top:0" placeholder="Người liên hệ (không bắt buộc)" value="${esc(M.lh)}" autocomplete="off"></label><label class="nlb">SĐT<input id="nksdt" class="subsel" style="margin-top:0" inputmode="tel" placeholder="SĐT (không bắt buộc)" value="${esc(M.sdt)}" autocomplete="off"></label>` : ''}
+    <div class="hlab">Sản phẩm</div><input id="nsp" class="subsel" style="margin-top:0" placeholder="vd Sổ tay, Hộp quà, Tem decal" value="${esc(M.sp)}" autocomplete="off">
+    <div class="note" style="margin:4px 0 0">Mã đơn sẽ là <b id="nmaprev">${esc(maPrev())}</b> · trạng thái <b>Bid</b>. Ghi chú này thành ghi chú đầu tiên của đơn.</div>`;
+}
+
 const GEN = new Set(['cong', 'tnhh', 'dich', 'thuong', 'mai', 'san', 'xuat', 'viet', 'nam', 'group', 'company', 'corp', 'saigon', 'quang', 'cao', 'shop', 'store']);
 const ntext = (x) => ' ' + nd(x).replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
 /* Từ khoá từng bước; chọn bước có từ khoá xuất hiện sớm nhất trong câu */
@@ -856,7 +897,7 @@ function vGCN(o) {
 function noteBuoc(o, so) { const L = notesCua(o.ma).filter((n) => n.so === so).slice(0, 3); return L.length ? `<div style="margin-top:8px">${L.map((n) => noteRow(n, false)).join('')}</div>` : ''; }
 function noteDonOpts() {
   const G = [['Run', 'Đang chạy'], ['Giao hàng', 'Đã giao'], ['Bid', 'Báo giá'], ['Done', 'Đã xong']], L = S.data.orders.filter((o) => o.tt !== 'Failed');
-  return `<option value="">— Chọn đơn hàng —</option><option value="CHUNG" ${NOTE.ma === 'CHUNG' ? 'selected' : ''}>Việc chung (không thuộc đơn nào)</option>` + G.map(([tt, ten]) => {
+  return `<option value="">— Chọn đơn hàng —</option><option value="MOI" ${NOTE.ma === 'MOI' ? 'selected' : ''}>➕ Đơn mới / khách mới…</option><option value="CHUNG" ${NOTE.ma === 'CHUNG' ? 'selected' : ''}>Việc chung (không thuộc đơn nào)</option>` + G.map(([tt, ten]) => {
     const l = L.filter((o) => o.tt === tt);
     return l.length ? `<optgroup label="${ten}">${l.map((o) => `<option value="${esc(o.ma)}" ${o.ma === NOTE.ma ? 'selected' : ''}>${esc(o.ma)}</option>`).join('')}</optgroup>` : '';
   }).join('');
@@ -867,11 +908,11 @@ function vNoteSug() {
   const hoi = s && s.so <= 9 && s.tt !== 'Xong' && laXong(NOTE.nd), dis = NOTE.busy ? 'disabled' : '';
   return `<div class="hlab">Đơn hàng${NOTE.ma && !NOTE.tuMa ? '<span class="nai">app tự chọn</span>' : ''}</div>
     <select id="ndon" class="subsel" style="margin-top:0" aria-label="Đơn hàng">${noteDonOpts()}</select>${chips}
-    <div class="hlab">Bước tiến độ${NOTE.so && !NOTE.tuSo ? '<span class="nai">app tự chọn</span>' : ''}</div>
-    <select id="nbuoc" class="subsel" style="margin-top:0" aria-label="Bước tiến độ" ${steps.length ? '' : 'disabled'}><option value="0">${steps.length ? 'Ghi chú chung của đơn (không gắn bước)' : o ? 'Đơn chưa có tiến độ: ghi chú chung của đơn' : '—'}</option>${steps.map((x) => `<option value="${x.so}" ${x.so === NOTE.so ? 'selected' : ''}>${x.so}. ${esc(STEP[x.so - 1] || x.ten)}${x.tt === 'Xong' ? ' ✓' : ''}</option>`).join('')}</select>
+    ${NOTE.ma === 'MOI' ? vMoi() : `<div class="hlab">Bước tiến độ${NOTE.so && !NOTE.tuSo ? '<span class="nai">app tự chọn</span>' : ''}</div>
+    <select id="nbuoc" class="subsel" style="margin-top:0" aria-label="Bước tiến độ" ${steps.length ? '' : 'disabled'}><option value="0">${steps.length ? 'Ghi chú chung của đơn (không gắn bước)' : o ? 'Đơn chưa có tiến độ: ghi chú chung của đơn' : '—'}</option>${steps.map((x) => `<option value="${x.so}" ${x.so === NOTE.so ? 'selected' : ''}>${x.so}. ${esc(STEP[x.so - 1] || x.ten)}${x.tt === 'Xong' ? ' ✓' : ''}</option>`).join('')}</select>`}
     ${NOTE.err ? `<div class="err" style="margin-top:4px">${esc(NOTE.err)}</div>` : ''}
     ${hoi ? `<button class="hgo" data-nluu="1" ${dis}>${NOTE.busy ? 'Đang lưu…' : 'Lưu + ✓ xác nhận bước ' + esc(STEP[s.so - 1]) + ' đã xong'}</button><button class="hgo hgo2" data-nluu="0" ${dis}>Chỉ lưu ghi chú, chưa tick</button>`
-      : `<button class="hgo" data-nluu="0" ${dis}>${NOTE.busy ? 'Đang lưu…' : 'Lưu ghi chú'}</button>`}
+      : `<button class="hgo" data-nluu="0" ${dis}>${NOTE.busy ? 'Đang lưu…' : NOTE.ma === 'MOI' ? 'Mở đơn mới + lưu ghi chú' : 'Lưu ghi chú'}</button>`}
     <div class="mut" style="margin-top:8px;font-size:12.5px;line-height:1.5">Ghi vào sổ, tab Ghi chú nhanh${NOTE.so ? ', và cột Ghi chú của bước này trong tab Tiến độ' : ''}. Báo cho 2 người còn lại.</div>`;
 }
 function paintNS() { const el = $('#nsug'); if (el) el.innerHTML = vNoteSug(); }
@@ -883,7 +924,7 @@ function vNote() {
     <div class="hlab" style="margin-top:18px">Ghi chú gần đây</div><div class="note" style="padding:4px 12px">${L.length ? L.map((n) => noteRow(n, true)).join('') : '<div class="mut" style="padding:8px 0">Chưa có ghi chú nào.</div>'}</div>`;
 }
 function moNote(ma) {
-  Object.assign(NOTE, { ma: ma || '', so: 0, nd: store.get('la-note-nhap') || '', tuMa: !!ma, tuSo: false, cand: [], chac: false, busy: false, err: '' });
+  Object.assign(NOTE, { ma: ma || '', so: 0, nd: store.get('la-note-nhap') || '', tuMa: !!ma, tuSo: false, cand: [], chac: false, busy: false, err: '', moi: { kh: '', ten: '', makh: '', lh: '', sdt: '', sp: '', tuMa: false } });
   if (NOTE.nd) doanNote();
   moP('note'); setTimeout(() => { const t = $('#nt'); if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }, 80);
 }
@@ -897,10 +938,22 @@ async function luuNote(xong) {
   const v = NOTE.nd.trim();
   if (!v) { NOTE.err = 'Anh gõ nội dung ghi chú trước.'; paintNS(); return; }
   if (!NOTE.ma) { NOTE.err = 'Anh chọn đơn hàng, hoặc chọn "Việc chung".'; paintNS(); return; }
+  let moi = null;
+  if (NOTE.ma === 'MOI') {
+    const M = NOTE.moi, khMoi = M.kh === '__new', makh = khMoi ? sachMaKh(M.makh) : M.kh;
+    if (!M.kh) { NOTE.err = 'Anh chọn khách hàng, hoặc chọn Khách mới.'; paintNS(); return; }
+    if (khMoi && !M.ten.trim()) { NOTE.err = 'Anh gõ tên khách mới.'; paintNS(); return; }
+    if (khMoi && makh.length < 2) { NOTE.err = 'Mã khách cần ít nhất 2 chữ, viết liền không dấu.'; paintNS(); return; }
+    const trung = khMoi && (S.data.khach || []).find((k) => k.ma.toUpperCase() === makh);
+    if (trung) { NOTE.err = 'Mã khách ' + makh + ' đã có (' + (trung.ten || trung.ma) + '). Anh chọn khách này trong danh sách, hoặc đổi mã.'; paintNS(); return; }
+    if (!maSp(M.sp)) { NOTE.err = 'Anh gõ tên sản phẩm của đơn mới.'; paintNS(); return; }
+    moi = { khMoi, makh, ten: M.ten.trim(), lh: M.lh.trim(), sdt: M.sdt.trim(), sp: M.sp.trim() };
+  }
   NOTE.busy = true; NOTE.err = ''; paintNS();
   const ma = NOTE.ma, so = NOTE.so;
   try {
-    const r = await api({ action: 'note', ma: ma === 'CHUNG' ? '' : ma, so, nd: v, xong: !!xong });
+    const r = await api({ action: 'note', ma: ma === 'CHUNG' || ma === 'MOI' ? '' : ma, so, nd: v, xong: !!xong, moi });
+    if (r.moi) { store.set('la-note-nhap', null); NOTE.nd = ''; NOTE.busy = false; dongP(); toast('Đã mở đơn ' + r.moi.ma + ' (Bid)'); S.moSau = r.moi.ma; load(S.code); return; }
     (S.data.notes = S.data.notes || []).unshift(r.note);
     if (r.note.xong) { const o = S.data.orders.find((x) => x.ma === ma), s = o && o.steps.find((x) => x.so === so); if (s) { s.tt = 'Xong'; s.xong = S.data.today; o.daXong = o.steps.filter((x) => x.tt === 'Xong').length; o.cur = o.steps.find((x) => x.tt !== 'Xong') || null; } }
     store.set('la-note-nhap', null); NOTE.nd = ''; NOTE.busy = false;
@@ -910,12 +963,20 @@ async function luuNote(xong) {
   } catch (e) { NOTE.busy = false; NOTE.err = 'Chưa lưu được: ' + e.message; paintNS(); }
 }
 document.addEventListener('input', (e) => {
+  const id = e.target.id, M = NOTE.moi;
+  if (['nkten', 'nkma', 'nklh', 'nksdt', 'nsp'].includes(id)) {
+    if (id === 'nkten') { M.ten = e.target.value; if (!M.tuMa) { M.makh = goiYMaKh(M.ten); const k = $('#nkma'); if (k) k.value = M.makh; } }
+    else if (id === 'nkma') { M.makh = e.target.value; M.tuMa = true; }
+    else if (id === 'nklh') M.lh = e.target.value; else if (id === 'nksdt') M.sdt = e.target.value; else M.sp = e.target.value;
+    const pv = $('#nmaprev'); if (pv) pv.textContent = maPrev(); return;
+  }
   if (e.target.id !== 'nt') return;
   NOTE.nd = e.target.value; store.set('la-note-nhap', NOTE.nd || null); NOTE.err = ''; doanNote(); paintNS();
 });
 document.addEventListener('change', (e) => {
-  if (e.target.id === 'ndon') { NOTE.ma = e.target.value; NOTE.tuMa = true; NOTE.err = ''; if (!NOTE.tuSo) { NOTE.so = 0; doanNote(); } else { const o = S.data.orders.find((x) => x.ma === NOTE.ma); if (!o || !(o.steps || []).some((s) => s.so === NOTE.so)) NOTE.so = 0; } paintNS(); }
+  if (e.target.id === 'ndon') { NOTE.ma = e.target.value; NOTE.tuMa = true; NOTE.err = ''; if (NOTE.ma === 'MOI') { NOTE.so = 0; paintNS(); return; } if (!NOTE.tuSo) { NOTE.so = 0; doanNote(); } else { const o = S.data.orders.find((x) => x.ma === NOTE.ma); if (!o || !(o.steps || []).some((s) => s.so === NOTE.so)) NOTE.so = 0; } paintNS(); }
   else if (e.target.id === 'nbuoc') { NOTE.so = +e.target.value; NOTE.tuSo = true; paintNS(); }
+  else if (e.target.id === 'nkh') { NOTE.moi.kh = e.target.value; NOTE.err = ''; paintNS(); }
 });
 document.addEventListener('click', (e) => {
   const n = e.target.closest('[data-nnew]'); if (n) { moNote(n.dataset.nnew || S.open || ''); return; }
@@ -1019,7 +1080,7 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#pov
 function loadAv() { api({ action: 'av' }).then((av) => { if (S.data && av && Object.keys(av).length) { S.data.av = Object.assign({}, S.data.av || {}, av); S.avOd = av; render(); } }).catch(() => {}); }
 function load(code, force) {
   S.busy = true; S.err = ''; render();
-  const ok = (data) => { S.busy = false; if (force) toast('Đã cập nhật số liệu lúc ' + (data.docLuc || '').slice(0, 5)); if (S.avOd) data.av = Object.assign({}, data.av || {}, S.avOd); const first = !S.data; S.data = data; S.code = code; store.set('la-code', code); render(); if (first && !window.__MOCK) loadAv(); daTai(first); };
+  const ok = (data) => { S.busy = false; if (force) toast('Đã cập nhật số liệu lúc ' + (data.docLuc || '').slice(0, 5)); if (S.avOd) data.av = Object.assign({}, data.av || {}, S.avOd); const first = !S.data; S.data = data; S.code = code; store.set('la-code', code); render(); if (S.moSau && data.orders.some((o) => o.ma === S.moSau)) { S.open = S.moSau; S.moSau = null; render(); } if (first && !window.__MOCK) loadAv(); daTai(first); };
   const fail = (e) => { S.busy = false; const m = (e && e.message) || String(e); if (/mã đăng nhập/i.test(m)) { S.data = null; store.set('la-code', null); } S.err = m; render(); };
   if (window.google && google.script && google.script.run) google.script.run.withSuccessHandler(ok).withFailureHandler(fail).layDuLieu(code);
   else if (!window.__MOCK) fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ code, force: !!force }) })
