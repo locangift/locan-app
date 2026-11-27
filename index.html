@@ -542,7 +542,7 @@ function render() {
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.7'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.8'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
@@ -698,7 +698,12 @@ function chonFile(ma, k) {
       const files = [...i.files], ma2 = PICK.ma, k2 = PICK.k; i.value = ''; PICK.luc = 0;
       if (!files.length || !ma2 || !k2) return;
       hsChon(ma2); toast('Đang gửi ' + files.length + ' file ' + tenLoaiNgan(k2) + '…');
-      guiLo(ma2, k2, files.map((f) => ({ f, ten: tenHS(ma2, k2, f.name) })));
+      const truoc = HS.up.length;
+      guiLo(ma2, k2, files.map((f) => ({ f, ten: tenHS(ma2, k2, f.name) }))).then((ok) => {
+        const loi = HS.up.slice(truoc).filter((u) => u.err).map((u) => u.ten + ': ' + u.err.replace(/^Gửi chưa được: /, ''));
+        if (loi.length) alert('Chưa gửi được ' + loi.length + ' file:\n' + loi.join('\n') + '\n\nAnh chụp màn hình này gửi Lisa nhé.');
+        else toast('Đã lưu ' + files.length + ' file ' + tenLoaiNgan(k2) + ' vào đơn ✓');
+      }).catch((err) => alert('Chưa gửi được: ' + ((err && err.message) || err)));
     });
   }
   PICK.ma = ma; PICK.k = k; PICK.luc = Date.now(); i.click();
