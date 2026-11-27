@@ -198,7 +198,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 .tbi b{font-size:14.5px}.tbi span{font-size:13.5px;line-height:1.4}.tbi small{font-size:11.5px;color:var(--nhat)}.tbi.moi{border-left:4px solid var(--son);background:#FFF8F0}.tbcd{margin-top:16px}.tbcd summary{font-weight:700;color:var(--nhat);font-size:13px;cursor:pointer;padding:8px 0}
 .ib .dot{position:absolute;top:8px;right:9px;width:9px;height:9px;border-radius:5px;background:#F2B544;border:1.5px solid var(--son)}.ib .dot[hidden]{display:none}
 .t1{font-size:14.5px;font-weight:600;line-height:1.5;color:var(--muc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gcd{margin-top:6px}.gcd p{font-size:13.5px;line-height:1.55;margin:6px 0;color:var(--muc)}
-.tqh{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding-bottom:6px;margin-bottom:4px;border-bottom:1px solid var(--ke)}.tqh .hlab{margin:3px 0 0;display:flex;flex-direction:column;align-items:flex-start;gap:3px}.tqh .hlab span{font-size:11px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--nhat);background:var(--nga);border-radius:6px;padding:1px 7px}.tqt{flex:none;text-align:right;color:var(--son);font-size:16px;font-weight:800;line-height:1.2}.tqt small{display:block;font-size:10.5px;font-weight:600;color:var(--nhat)}.tq{display:flex;align-items:baseline;gap:10px;padding:3px 0;font-size:14px}.tq .a{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}.tq .a small{font-weight:400;color:var(--nhat);font-size:12.5px;margin-left:6px}.tq .a em{font-style:normal;font-size:11px;color:var(--nhat)}.tq>b{flex:none;font-weight:700}.tq.kc{opacity:.55}.tq.tc{border-top:1px solid var(--ke);margin-top:3px;padding-top:6px;color:var(--son)}.tq.tc>b{font-size:15px}.tql{font-size:12px;color:var(--warn);margin-top:1px}.tqf{font-size:13px;color:var(--muc);margin-top:6px;background:var(--kem);border-radius:9px;padding:6px 9px}.tqf b.no{color:var(--bad)}.tqf b.ok{color:var(--ok)}.gcd summary{font-size:13px}.gcd p.gs{margin-top:10px}
+.tqh{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding-bottom:6px;margin-bottom:4px;border-bottom:1px solid var(--ke)}.tqh .hlab{margin:3px 0 0;display:flex;flex-direction:column;align-items:flex-start;gap:3px}.tqh .hlab span{font-size:11px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--nhat);background:var(--nga);border-radius:6px;padding:1px 7px}.tqt{flex:none;text-align:right;color:var(--son);font-size:16px;font-weight:800;line-height:1.2}.tqt small{display:block;font-size:10.5px;font-weight:600;color:var(--nhat)}.tq{display:flex;align-items:baseline;gap:10px;padding:3px 0;font-size:14px}.tq .a{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}.tq .a small{font-weight:400;color:var(--nhat);font-size:12.5px;margin-left:6px}.tq .a em{font-style:normal;font-size:11px;color:var(--nhat)}.tq>b{flex:none;font-weight:700}.tq.kc{opacity:.55}.tq.tc{border-top:1px solid var(--ke);margin-top:3px;padding-top:6px;color:var(--son)}.tq.tc>b{font-size:15px}.tql{font-size:12px;color:var(--warn);margin-top:1px}.tqf{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muc);margin-top:6px;background:var(--kem);border-radius:9px;padding:6px 6px 6px 9px}.tqf>span{flex:1;min-width:0}.tqf b.no{color:var(--bad)}.tqf b.ok{color:var(--ok)}.tqb{flex:none;border:0;background:transparent;color:var(--son);font-weight:700;font-size:13px;padding:4px 4px;cursor:pointer;white-space:nowrap}.tqct{margin-top:6px}.tqct p{font-size:13px;line-height:1.5;margin:5px 0;color:var(--muc)}.tqct p.gs{margin-top:10px}
 .hh2{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}.hh2 b{font-size:15px}
 .info{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .it{background:var(--kem);border-radius:12px;padding:9px 10px;display:flex;gap:8px;align-items:flex-start;min-width:0}
@@ -417,8 +417,10 @@ function rutGon(o) {
   r.thieu = th.slice(0, 4);
   return r;
 }
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-tqct]'); if (!b || !S.open) return; if (TQ_MO.has(S.open)) TQ_MO.delete(S.open); else TQ_MO.add(S.open); const el = document.getElementById('ttdon'), o = S.data.orders.find((x) => x.ma === S.open); if (el && o) el.innerHTML = vTT(o); });
 /* Tổng quan đơn (27/11): lấy từ tab "Báo giá" (S.data.bg[mã đơn]); chưa có báo giá thì rút gọn từ ghi chú sổ. */
 const soVN = (n) => n == null ? '' : (+n).toLocaleString('vi-VN', { maximumFractionDigits: 2 });
+const TQ_MO = new Set(); /* đơn đang mở phần Chi tiết của Tổng quan */
 function vTT(o) {
   const bgAll = S.data.bg || {}, B = bgAll[o.ma] || bgAll[Object.keys(bgAll).find((k) => k.toLowerCase() === String(o.ma).toLowerCase())];
   const r = rutGon(o); r.tt = String(r.tt || '').replace(/^Tt\b/, 'Thanh toán');
@@ -451,7 +453,7 @@ function vTT(o) {
   const han = o.han ? dm(o.han) : o.hanText;
   const cuoi = [`Giao <b>${han ? esc(han) : 'chưa có'}</b>`, o.dt > 0 || o.daThu > 0 ? `Đã thu <b>${gon(o.daThu)}</b>` : '', o.dt > 0 ? (o.phaiThu > 0 ? `Còn <b class="no">${gon(o.phaiThu)}</b>` : '<b class="ok">Thu đủ</b>') : ''].filter(Boolean).join(' · ');
   if (o.ghiChu) ct.push('<p class="gs"><b>Ghi chú sổ:</b></p>' + String(o.ghiChu).split(/\s\|\s/).map((p) => `<p>${esc(p.trim())}</p>`).join(''));
-  return `<div class="tqh"><span class="hlab">Tổng quan đơn hàng${nhan}</span>${tong}</div>${hang}${lech}<div class="tqf">${cuoi}</div>${ct.length ? `<details class="gcd"><summary>Chi tiết</summary>${ct.join('')}</details>` : ''}`;
+  return `<div class="tqh"><span class="hlab">Tổng quan đơn hàng${nhan}</span>${tong}</div>${hang}${lech}<div class="tqf"><span>${cuoi}</span>${ct.length ? `<button class="tqb" data-tqct aria-expanded="${TQ_MO.has(o.ma)}">Chi tiết ${TQ_MO.has(o.ma) ? '▴' : '▾'}</button>` : ''}</div>${ct.length ? `<div class="tqct" ${TQ_MO.has(o.ma) ? '' : 'hidden'}>${ct.join('')}</div>` : ''}`;
 }
 /* ---------- Quy trình 4 giai đoạn (chốt 26/11/2026): Bid → Run → Giao hàng → Done ---------- */
 const GD = ['Bid', 'Run', 'Giao hàng', 'Done'];
@@ -600,7 +602,7 @@ function render() {
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.23'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.24'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
