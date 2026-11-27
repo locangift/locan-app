@@ -832,7 +832,7 @@ function boBuocTronGoi(data) {
   });
 }
 function vTL(o) {
-  if (!o.steps.length) return '<div class="mut">Đơn chưa có tiến độ trong sổ. Khi đơn chuyển Run, máy chủ tự tạo 10 bước trong vòng 5 phút.</div>';
+  if (!o.steps.length) return '';
   const sel = BP.ma === o.ma ? BP.so : 0;
   const metro = o.steps.map((s, i) => { const cls = s.tt === 'Xong' ? 'x' : s.tt === 'Trễ' ? 't' : o.cur && o.cur.so === s.so ? 'c' : ''; const nx = o.steps[i + 1]; return `<div class="mt ${cls} ${sel === s.so ? 'sel' : ''}" role="button" tabindex="0" data-buoc="${s.so}" style="--ln:${s.tt === 'Xong' && nx ? '#2F7A4B' : '#E6DCCD'}"><i>${s.tt === 'Xong' ? '✓' : s.so}</i><span>${SHORT[s.so - 1] || esc(s.ten)}</span><small>${s.tt === 'Xong' ? dm(s.xong) || '✓' : s.hx ? dm(s.hx) : '–'}</small></div>`; }).join('');
   const s = sel && o.steps.find((x) => x.so === sel);
@@ -891,7 +891,7 @@ function vChiTiet(o) {
   return `<div class="sh shd"><button class="back" data-close aria-label="Quay lại"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>${thumb(o, 's44')}<div class="shm"><b class="ser" data-fit>${esc(o.ma)}</b><span class="shs">${tomTatSp(o.sp) ? `<i>${esc(tomTatSp(o.sp))}</i>` : ''}<em class="tag ${ttCls(o)}">${esc(o.tt)}</em></span></div><button class="ib ${S.busy ? 'spin' : ''}" data-reload aria-label="Làm mới" style="margin-left:auto;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></button></div>
   <main style="padding-bottom:40px">
   <div class="card" id="ttdon">${vTT(o)}</div>
-  <div class="card" id="tl">${vTL(o)}</div>
+  ${(o.steps || []).length ? `<div class="card" id="tl">${vTL(o)}</div>` : '<div id="tl" hidden></div>'}
   <div class="card" id="qt">${vQT(o)}</div>
   <div class="card" id="tien">${vTien(o)}</div>
   </main>`;
@@ -926,7 +926,7 @@ function render() {
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.41'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.42'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
