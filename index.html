@@ -86,7 +86,7 @@ td{padding:8px 4px 8px 0;border-bottom:1px solid var(--nga);vertical-align:top}t
 .sheet{position:fixed;inset:0;z-index:40;background:var(--kem);overflow-y:auto;-webkit-overflow-scrolling:touch}
 @keyframes nhay{0%,45%{box-shadow:0 0 0 3px var(--vang)}100%{box-shadow:0 0 0 0 transparent}}.nhay{animation:nhay 2.6s ease-out}
 .sh{position:sticky;top:0;z-index:2;background:var(--son);color:var(--kem);display:flex;gap:10px;align-items:center;padding:calc(10px + env(safe-area-inset-top)) 14px 10px}
-.sh.shd{flex-wrap:wrap;gap:8px 10px;padding-bottom:12px}.shd .back,.shd .ib{width:38px;height:38px}.shd .th.s44{width:40px;height:40px}.shm{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.shm b{font-size:18px;font-weight:700;line-height:1.2;text-wrap:balance;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.shm span{font-size:12px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.shp{flex-basis:100%;margin:0;padding:8px 2px 0;border-top:1px solid rgba(247,242,233,.22);font-size:13px;line-height:1.45;opacity:.95;text-wrap:balance;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sh.shd{flex-wrap:wrap;gap:8px 10px;padding-bottom:12px}.shd .back,.shd .ib{width:38px;height:38px}.shd .th.s44{width:40px;height:40px}.shm{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.shm b{font-size:18px;font-weight:700;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.shm span{font-size:12px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.shp{flex-basis:100%;margin:0;padding:8px 2px 0;border-top:1px solid rgba(247,242,233,.22);font-size:13px;line-height:1.45;opacity:.95;text-wrap:balance;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .back{width:44px;height:44px;border-radius:22px;border:0;background:var(--kem);color:var(--son);display:grid;place-items:center;cursor:pointer;flex:none}
 .metro{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));row-gap:12px}
 .mt{display:flex;flex-direction:column;align-items:center;gap:4px;position:relative}
@@ -186,7 +186,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 .xemt{display:flex;gap:6px;overflow-x:auto;padding:0 8px 8px}.xemt button{flex:none;border:0;border-radius:8px;background:rgba(247,242,233,.16);color:var(--kem);font:inherit;font-size:13px;padding:6px 10px;cursor:pointer}.xemt button[aria-pressed="true"]{background:var(--kem);color:var(--son);font-weight:700}
 .xemx{background:#fff;margin:0 8px;border-radius:10px;overflow:auto}.xemx table{border-collapse:collapse;font-size:12.5px;color:var(--muc)}.xemx td,.xemx th{border:1px solid var(--ke);padding:4px 8px;white-space:nowrap;vertical-align:top}.xemx td[data-t="n"]{text-align:right}.xemx td.dai{white-space:normal;min-width:150px;max-width:200px}
 .xemf{display:block;width:100%;height:100%;border:0;background:#fff}
-.tqr{flex:none;display:flex;align-items:flex-start;gap:6px}.tqg{flex:none;border:1px solid var(--ke);background:#fff;color:var(--son);font:inherit;font-size:11.5px;font-weight:700;border-radius:999px;padding:3px 8px;cursor:pointer;white-space:nowrap;align-self:flex-start}
+.tqr{flex:none;display:flex;align-items:flex-start;gap:6px}.tqh .hlab{white-space:nowrap;font-size:11.5px;letter-spacing:.02em;min-width:0}.tqg{flex:none;border:1px solid var(--ke);background:#fff;color:var(--son);font:inherit;font-size:11.5px;font-weight:700;border-radius:999px;padding:3px 8px;cursor:pointer;white-space:nowrap;align-self:flex-start}
 /* Hộp thư đến + thông báo */
 .hopb{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));z-index:40;border:0;border-radius:999px;background:var(--muc);color:var(--kem);padding:12px 18px;font-size:14.5px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.28);cursor:pointer;white-space:nowrap}
 .hopb[hidden]{display:none}
@@ -867,10 +867,23 @@ document.addEventListener('click', (e) => {
     if (s && confirm(hoi)) { x.disabled = true; xacNhanBuoc(S.open, BP.so, xong); }
   }
 });
+/* 27/11 22:33 anh Nix: dưới mã đơn chỉ ghi sơ bộ (vd "Decal rọc demi"): loại hàng + gia công chính */
+const SP_GC = [['roc demi', 'rọc demi'], ['be demi', 'bế demi'], ['can mang bong|can bong', 'cán bóng'], ['can mang mo|can mo', 'cán mờ'], ['can mang', 'cán màng'], ['ep kim', 'ép kim'], ['dap noi', 'dập nổi'], ['\\buv\\b', 'UV'], ['dong ghim', 'đóng ghim'], ['may chi', 'may chỉ'], ['lo xo', 'lò xo'], ['\\bboi\\b', 'bồi'], ['(?<!khuon )\\bbe\\b(?! demi)', 'bế'], ['gap dan|dan day', 'gấp dán'], ['in logo', 'in logo']];
+function tomTatSp(sp) {
+  const t0 = String(sp || '').trim(); if (!t0) return '';
+  const w = t0.split(/[\s,(]+/), dung = /^(giấy|giay|nhựa|nhua|couche|kraft|fort|ford|ivory|duplex|bristol|c\d+|\d.*|\d+x\d+.*|in|khổ|kho|size|màu|mau|cán|can|bế|be|rọc|roc|ép|ep|đóng|dong|gồm|gom|may|dập|dap|uv|bồi|boi|gấp|gap)$/i;
+  let k = w.findIndex((x, i) => i > 0 && dung.test(x)); if (k < 0) k = Math.min(w.length, 3);
+  const loai = w.slice(0, Math.min(k, 3)).join(' ');
+  const f = nd(t0), gc = []; SP_GC.forEach(([re, ten]) => { if (new RegExp(re).test(f) && !gc.some((g) => nd(g).includes(nd(ten)) || nd(ten).includes(nd(g)))) gc.push(ten); });
+  return (loai + (gc.length ? ' ' + gc.slice(0, 3).join(', ') : '')).replace(/\s+/g, ' ').trim();
+}
+/* Mã đơn 1 hàng: chữ tự nhỏ lại cho vừa (tối thiểu 13px) */
+function vuaChu() { document.querySelectorAll('[data-fit]').forEach((el) => { let fs = 18; el.style.fontSize = fs + 'px'; while (el.scrollWidth > el.clientWidth + 1 && fs > 13) { fs -= 0.5; el.style.fontSize = fs + 'px'; } }); }
+window.addEventListener('resize', vuaChu);
 function vChiTiet(o) {
   const [dl, dc] = due(o), t = S.data.today;
   const bar = (lab, a, b, col) => `<div style="margin-top:8px"><div class="lt" style="display:flex;justify-content:space-between;font-size:12.5px"><span style="font-weight:600">${lab}</span><span><b>${tr(a)}</b> / ${tr(b)}</span></div><div class="trk" style="height:12px;margin-top:3px"><i style="width:${b ? Math.min(100, Math.round(a / b * 100)) : 0}%;background:${col}"></i></div></div>`;
-  return `<div class="sh shd"><button class="back" data-close aria-label="Quay lại"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>${thumb(o, 's44')}<div class="shm"><b class="ser">${esc(o.ma)}</b><span>${esc(o.kh)}</span></div><button class="ib ${S.busy ? 'spin' : ''}" data-reload aria-label="Làm mới" style="margin-left:auto;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></button>${o.sp ? `<p class="shp">${esc(o.sp)}</p>` : ''}</div>
+  return `<div class="sh shd"><button class="back" data-close aria-label="Quay lại"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>${thumb(o, 's44')}<div class="shm"><b class="ser" data-fit>${esc(o.ma)}</b>${tomTatSp(o.sp) ? `<span>${esc(tomTatSp(o.sp))}</span>` : ''}</div><button class="ib ${S.busy ? 'spin' : ''}" data-reload aria-label="Làm mới" style="margin-left:auto;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></button></div>
   <main style="padding-bottom:40px">
   <div class="tags" style="margin-bottom:10px"><span class="tag ${ttCls(o)}">${esc(o.tt)}</span><span class="tag ${dc}">${esc(dl)}</span>${o.cur && o.tt === 'Run' ? `<span class="tag">Chờ ${esc(o.cur.ai)}</span>` : ''}${o.canhBao && o.canhBao !== 'OK' ? `<span class="tag t-bad">${esc(o.canhBao)}</span>` : ''}</div>
   <div class="card" id="ttdon">${vTT(o)}</div>
@@ -899,11 +912,12 @@ function render() {
   <nav class="tabs" aria-label="Mục">${tabs.map((t) => `<button class="tab" data-view="${t[0]}" ${S.view === t[0] ? 'aria-current="page"' : ''}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${svgTab[t[0]]}</svg>${t[1]}</button>`).join('')}</nav>
   ${o ? `<div class="sheet" role="dialog" aria-label="${esc(o.ma)}" data-ma="${esc(o.ma)}">${vChiTiet(o)}</div>` : ''}`;
   const moi = document.querySelector('.sheet'); if (moi && cuMa === o.ma) moi.scrollTop = cuTop;
+  if (o) { vuaChu(); if (document.fonts && document.fonts.ready) document.fonts.ready.then(vuaChu); }
   paintNoteBtn();
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.34'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.35'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
