@@ -651,7 +651,10 @@ function vTien(o) {
     if (noTong) ghi.push(`Còn ${vnd(noTong)} đã ghi nhưng chưa trả NCC.`);
     ghi.push('Chênh lệch = thực tế − DTKP: <span class="vuot">+ vượt dự trù</span>, <span class="duoi">− còn trong dự trù</span>.');
     chiH += `<div class="tnf">${ghi.map((g) => `<p>${g.startsWith('Chênh') ? g : esc(g)}</p>`).join('')}</div>`;
-    if (chi.length) chiH += `<details class="tnx"><summary>Từng khoản chi (${chi.length})</summary><div class="tnl">${chi.map((x) => `<div class="tni${x[6] ? '' : ' chua'}"><div class="tnd">${esc(ddm(x[0]))}</div><div class="tnm"><b>${esc(HM[hmSo(x[2])])}${x[3] ? ' · ' + esc(x[3]) : ''}</b>${x[6] ? '' : '<span class="tnv w">chưa trả</span>'}<small>${esc(x[4])}</small></div><div class="tna">${vnd(x[5])}</div></div>`).join('')}</div></details>`;
+    /* 27/11 23:10 anh Nix: Đã chi chỉ giữ danh sách từng khoản chi, mới nhất ở trên */
+    const ngayS = (d) => { const m = String(d || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m ? +m[3] * 1e4 + +m[2] * 100 + +m[1] : 0; };
+    const chiX = chi.map((x, k) => [x, k]).sort((a, b) => ngayS(b[0][0]) - ngayS(a[0][0]) || b[1] - a[1]).map((a) => a[0]);
+    chiH = chi.length ? `<div class="tnl">${chiX.map((x) => `<div class="tni${x[6] ? '' : ' chua'}"><div class="tnd">${esc(ddm(x[0]))}</div><div class="tnm"><b>${esc(HM[hmSo(x[2])])}${x[3] ? ' · ' + esc(x[3]) : ''}</b>${x[6] ? '' : '<span class="tnv w">chưa trả</span>'}<small>${esc(x[4])}</small></div><div class="tna">${vnd(x[5])}</div></div>`).join('')}</div>` : '<div class="mut tne">Chưa có khoản chi nào trong sổ.</div>';
   }
   return `<div class="mut" style="font-weight:600">Tiền của đơn</div>${bar('Đã thu', o.daThu, o.dt, '#2F7A4B', 't', thu.length ? thu.length + ' lần' : '')}${thuH ? `<div class="tnc">${thuH}<button class="tqdg" data-tn="t" data-cuon="tien">Thu gọn Đã thu ▴</button></div>` : ''}${bar('Đã chi', o.daChi, o.dtkp, '#8E2A1E', 'c', chi.length ? chi.length + ' khoản' : '')}${chiH ? `<div class="tnc">${chiH}<button class="tqdg" data-tn="c" data-cuon="tien">Thu gọn Đã chi ▴</button></div>` : ''}${mo('t') || mo('c') ? '' : `<div class="mut" style="margin-top:8px">Doanh thu dự kiến ${vnd(o.dt)} · DTKP ${vnd(o.dtkp)}${o.dtkpTu ? ' (theo ghi chú)' : ''} · còn phải thu ${vnd(conThu(o))}</div>`}`;
 }
@@ -939,7 +942,7 @@ function render() {
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.43'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.44'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
