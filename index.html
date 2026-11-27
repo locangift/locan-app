@@ -413,7 +413,7 @@ function vQT(o) {
   };
   const em = (v, bb) => v === true ? ['y', '✓'] : v === 'cho' ? ['o', '○'] : v === false ? (bb ? ['n', '✕'] : ['o', '○']) : ['u', '…'];
   const dangGui = (k) => HS.up.some((u) => u.ma === o.ma && u.k === k && !u.done && !u.err);
-  const cong = (ten, v, k) => !k || v === true || fail ? '' : dangGui(k) ? '<span class="qup on">đang gửi…</span>' : `<label class="qup" aria-label="Gửi file ${esc(ten)}">＋<input type="file" multiple data-qup="${k}"></label>`;
+  const cong = (ten, v, k) => !k || v === true || fail ? '' : dangGui(k) ? '<span class="qup on">đang gửi…</span>' : `<button class="qup" data-qup="${k}" aria-label="Gửi file ${esc(ten)}">＋</button>`;
   const row = ([ten, v, bb, k]) => { const [c, s] = em(v, bb); return `<div class="ck"><em class="${c}">${s}</em><span>${esc(ten)}</span><small>${v === 'cho' ? 'nút duyệt sắp có' : bb ? 'bắt buộc' : 'không bắt buộc'}</small>${cong(ten, v, k)}</div>`; };
   const step = (s) => { const c = s.tt === 'Xong' ? '#2F7A4B' : s.tt === 'Trễ' ? '#B3261E' : s.tt === 'Đang làm' ? '#2B5F9E' : '#D9CFC0'; return `<div class="sl"><i style="background:${c}"></i><b>${esc(s.ten.replace(/^\d+\.\s*/, ''))}</b><span class="tag ${s.tt === 'Xong' ? 't-ok' : s.tt === 'Trễ' ? 't-bad' : s.tt === 'Đang làm' ? 't-run' : 't-idle'}">${esc(s.tt)}</span><small>${esc(s.ai)} · ${s.tt === 'Xong' ? 'xong ' + dm(s.xong) : 'hạn ' + dm(s.hx)}${s.viec ? ' · ' + esc(s.viec) : ''}</small></div>`; };
   const pill = GD.map((g, i) => { const c = fail ? 'f' : i < idx ? 'x' : i === idx ? 'c' : ''; return `<div class="gd ${c}"><i>${c === 'x' ? '✓' : i + 1}</i><span>${g}</span></div>`; }).join('');
@@ -536,7 +536,7 @@ function render() {
   paintNoteBtn();
 }
 
-const APP_VER = '2026-11-27.5'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.6'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
@@ -626,7 +626,7 @@ function vHoSo(o) {
   const d = HS.ma === o.ma ? HS.d : null;
   const L0 = d ? locHoSo(d.files) : [], dem = (k) => L0.filter((f) => f.k === k).length;
   /* Chọn loại: vừa lọc danh sách bên dưới, vừa là loại hồ sơ khi gửi file */
-  const head = `<div class="hh"><b>Hồ sơ đơn hàng</b><label class="upb">＋ Gửi file<input type="file" id="hs-file" multiple></label></div>
+  const head = `<div class="hh"><b>Hồ sơ đơn hàng</b><button class="upb" data-hsup>＋ Gửi file</button></div>
     <select class="subsel" id="hs-loai" aria-label="Lọc và gửi theo loại hồ sơ"><option value="">Tất cả hồ sơ${d ? ' (' + L0.length + ')' : ''}</option>${optLoai(HS.loai, d ? dem : null)}</select>`;
   const ups = HS.up.filter((u) => u.ma === o.ma).map((u) => `<div class="upr ${u.err ? 'er' : ''}"><b>${esc(u.ten)}</b> · ${u.err ? esc(u.err) : u.done ? 'đã lưu vào OneDrive ✓' : `đang gửi ${u.pct}% (${kb(u.sent)} / ${kb(u.size)})`}${u.err || u.done ? '' : `<div class="trk"><i style="width:${u.pct}%;background:var(--son)"></i></div>`}</div>`).join('');
   if (HS.err) return head + ups + `<div class="err">${esc(HS.err)}</div>`;
@@ -679,16 +679,31 @@ async function guiLo(ma, k, list) {
   hsLoad(ma, true, true);
   return ok;
 }
+/* Chọn file bằng 1 ô chọn file cố định ngoài phần giao diện vẽ lại: trên iPhone, quay về từ màn hình chọn file app tự tải lại số liệu và vẽ lại, ô chọn file nằm trong đơn bị thay mới nên mất sự kiện chọn file (lỗi anh Nix báo 27/11 12:52) */
+const PICK = { ma: '', k: '', luc: 0 };
+const tenLoaiNgan = (k) => ((LOAI.find((l) => l[0] === k) || [, ''])[1] || '').split(' / ')[0];
+function chonFile(ma, k) {
+  let i = document.getElementById('pick-in');
+  if (!i) {
+    i = document.createElement('input'); i.type = 'file'; i.multiple = true; i.id = 'pick-in'; i.tabIndex = -1; i.setAttribute('aria-hidden', 'true');
+    i.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0';
+    document.body.appendChild(i);
+    i.addEventListener('change', () => {
+      const files = [...i.files], ma2 = PICK.ma, k2 = PICK.k; i.value = ''; PICK.luc = 0;
+      if (!files.length || !ma2 || !k2) return;
+      hsChon(ma2); toast('Đang gửi ' + files.length + ' file ' + tenLoaiNgan(k2) + '…');
+      guiLo(ma2, k2, files.map((f) => ({ f, ten: tenHS(ma2, k2, f.name) })));
+    });
+  }
+  PICK.ma = ma; PICK.k = k; PICK.luc = Date.now(); i.click();
+}
+document.addEventListener('click', (e) => {
+  const q = e.target.closest('[data-qup]'); if (q && S.open) { chonFile(S.open, q.dataset.qup); return; }
+  if (e.target.closest('[data-hsup]') && S.open) { if (!HS.loai) { alert('Anh chọn loại hồ sơ ở ô bên dưới (báo giá, DTKP, file in…) rồi bấm Gửi file.'); return; } chonFile(S.open, HS.loai); }
+});
 function openLb(src) { const d = document.createElement('div'); d.className = 'lbx'; d.innerHTML = `<button aria-label="Đóng">✕</button><img alt="">`; d.querySelector('img').src = src; d.addEventListener('click', () => d.remove()); document.body.appendChild(d); }
 document.addEventListener('change', (e) => {
   if (e.target.id === 'hs-loai') { HS.loai = e.target.value; paintHS(); return; }
-  const qk = e.target.dataset && e.target.dataset.qup;
-  if (qk && S.open) { const files = [...e.target.files], ma = S.open; e.target.value = ''; if (!files.length) return; hsChon(ma); toast('Đang gửi ' + files.length + ' file ' + (LOAI.find((l) => l[0] === qk) || [, ''])[1].split(' / ')[0] + '…'); guiLo(ma, qk, files.map((f) => ({ f, ten: tenHS(ma, qk, f.name) }))); return; }
-  if (e.target.id === 'hs-file' && S.open) {
-    const k = HS.loai, files = [...e.target.files]; e.target.value = '';
-    if (!k) { alert('Chọn loại hồ sơ ở ô bên dưới (báo giá, DTKP, file in…) rồi bấm Gửi file.'); return; }
-    guiLo(S.open, k, files.map((f) => ({ f, ten: tenHS(S.open, k, f.name) })));
-  }
 });
 document.addEventListener('click', (e) => {
   const cb = e.target.closest('[data-cuxoa],[data-cugiu]');
@@ -1101,7 +1116,7 @@ document.addEventListener('click', (e) => {
 });
 document.addEventListener('submit', (e) => { e.preventDefault(); if (e.target.id === 'f-login') { const c = ($('#code').value || '').trim(); if (c) load(c); } });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.open) { S.open = null; render(); } });
-document.addEventListener('visibilitychange', () => { if (document.visibilityState !== 'visible' || !S.data || !S.code) return; if (Date.now() - (S.kiemLuc || 0) > 600000) kiemBanMoi(); load(S.code); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState !== 'visible' || !S.data || !S.code) return; if (PICK.luc && Date.now() - PICK.luc < 120000) return; if (Date.now() - (S.kiemLuc || 0) > 600000) kiemBanMoi(); load(S.code); });
 /* Nút làm mới: nạp bản app mới nếu có, lấy số liệu mới nhất (bỏ qua bộ nhớ 60 giây của máy chủ), làm mới hồ sơ đơn đang mở và hộp thư đến */
 async function lamMoiTatCa() {
   if (S.busy) return;
