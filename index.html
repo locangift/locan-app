@@ -542,7 +542,6 @@ function vChiTiet(o) {
   <div class="card" id="qt">${vQT(o)}</div>
   <div class="card"><div class="mut" style="font-weight:600">Tiền của đơn</div>${bar('Đã thu', o.daThu, o.dt, '#2F7A4B')}${bar('Đã chi', o.daChi, o.dtkp, '#8E2A1E')}<div class="mut" style="margin-top:8px">Doanh thu dự kiến ${vnd(o.dt)} · DTKP ${vnd(o.dtkp)} · còn phải thu ${vnd(o.phaiThu)}</div></div>
   <div class="card" id="hoso">${vHoSo(o)}</div>
-  <div class="card" id="gcn">${vGCN(o)}</div>
   </main>`;
 }
 
@@ -569,7 +568,7 @@ function render() {
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.18'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.19'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
@@ -1237,7 +1236,7 @@ function dichTB(m) {
   let so = 0;
   if (loai === 'giao' || loai === 'han') so = 8;
   else if (loai === 'buoc' || loai === 'ngay' || loai === 'note') so = buocTuChu(m.nd);
-  const muc = so ? 'tl' : loai === 'note' ? 'gcn' : loai === 'file' ? 'hoso' : loai === 'tt' || loai === 'moi' ? 'qt' : '';
+  const muc = so ? 'tl' : loai === 'file' ? 'hoso' : loai === 'tt' || loai === 'moi' ? 'qt' : '';
   return { ma, so, muc };
 }
 let MO_DA = 0;
