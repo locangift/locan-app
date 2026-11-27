@@ -435,7 +435,7 @@ function rutGon(o) {
   r.thieu = th.slice(0, 4);
   return r;
 }
-document.addEventListener('click', (e) => { const b = e.target.closest('[data-tqgon]'); if (!b || !S.open) return; TQ_GON.v = !TQ_GON.v; store.set('la-tq-gon', TQ_GON.v ? '1' : null); const el = document.getElementById('ttdon'), o = S.data.orders.find((x) => x.ma === S.open); if (el && o) el.innerHTML = vTT(o); });
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-tqgon]'); if (!b || !S.open) return; TQ_GON.has(S.open) ? TQ_GON.delete(S.open) : TQ_GON.add(S.open); const el = document.getElementById('ttdon'), o = S.data.orders.find((x) => x.ma === S.open); if (el && o) el.innerHTML = vTT(o); });
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-tqct]'); if (!b || !S.open) return; if (TQ_MO.has(S.open)) TQ_MO.delete(S.open); else TQ_MO.add(S.open); const el = document.getElementById('ttdon'), o = S.data.orders.find((x) => x.ma === S.open); if (el && o) el.innerHTML = vTT(o); });
 /* DTKP gõ bằng chữ (anh Nix 27/11 21:14): ghi chú nhanh của đơn ở bước DTKP, hoặc mở đầu "Dự trù kinh phí"/"DTKP",
    app tự tách từng khoản, đọc số tiền (500k, 1tr2, 1,5tr, 1.200.000đ, "24 ram x 511.000", "… = 12.264.000"), cộng tổng và trình bày gọn.
@@ -647,7 +647,8 @@ document.addEventListener('click', (e) => {
 /* Tổng quan đơn (27/11): lấy từ tab "Báo giá" (S.data.bg[mã đơn]); chưa có báo giá thì rút gọn từ ghi chú sổ. */
 const soVN = (n) => n == null ? '' : (+n).toLocaleString('vi-VN', { maximumFractionDigits: 2 });
 const TQ_MO = new Set(); /* đơn đang mở phần Chi tiết của Tổng quan */
-const TQ_GON = { v: store.get('la-tq-gon') === '1' }; /* 27/11 anh Nix: nút thu gọn khung Tổng quan đơn hàng; nhớ trên máy, áp dụng mọi đơn */
+const TQ_GON = new Set(); /* 27/11 22:31 anh Nix: Tổng quan đơn hàng luôn mở sẵn mỗi lần vào đơn; Thu gọn chỉ áp dụng lúc đang xem đơn đó */
+try { store.set('la-tq-gon', null); } catch (e) {}
 function vTT(o) {
   const bgAll = S.data.bg || {}, B = bgAll[o.ma] || bgAll[Object.keys(bgAll).find((k) => k.toLowerCase() === String(o.ma).toLowerCase())];
   const r = rutGon(o); r.tt = String(r.tt || '').replace(/^Tt\b/, 'Thanh toán');
@@ -673,7 +674,7 @@ function vTT(o) {
   }
   const han = o.han ? dm(o.han) : o.hanText;
   const cuoi = [`Giao <b>${han ? esc(han) : 'chưa có'}</b>`, o.dt > 0 || o.daThu > 0 ? `Đã thu <b>${gon(o.daThu)}</b>` : '', o.dt > 0 ? (o.phaiThu > 0 ? `Còn <b class="no">${gon(o.phaiThu)}</b>` : '<b class="ok">Thu đủ</b>') : ''].filter(Boolean).join(' · ');
-  const mo = TQ_MO.has(o.ma), tqGon = TQ_GON.v;
+  const mo = TQ_MO.has(o.ma), tqGon = TQ_GON.has(o.ma);
   const dau = `<div class="tqh"><span class="hlab">Tổng quan đơn hàng${coBG ? '' : '<span>chưa có báo giá</span>'}</span><span class="tqr">${tong}<button class="tqg" data-tqgon aria-expanded="${!tqGon}">${tqGon ? 'Mở ▾' : 'Thu gọn ▴'}</button></span></div>`;
   if (tqGon) return `${dau}<div class="tqf"><span>${cuoi}</span></div>`;
   return `${dau}${hang}${lech}<div class="tqf"><span>${cuoi}</span><button class="tqb" data-tqct aria-expanded="${mo}">Chi tiết ${mo ? '▴' : '▾'}</button></div>${mo ? `<div class="tqct">${vCT(o, B, r, { co, truoc, vm, ks, vs, tc, chuaRo, coBG })}</div>` : ''}`;
@@ -1871,8 +1872,8 @@ function load(code, force) {
 document.addEventListener('click', (e) => {
   const t = e.target.closest('[data-open],[data-close],[data-view],[data-fil],[data-reload]');
   if (!t) return;
-  if (t.dataset.open) { S.open = t.dataset.open; }
-  else if (t.hasAttribute('data-close')) { S.open = null; }
+  if (t.dataset.open) { S.open = t.dataset.open; TQ_GON.delete(S.open); }
+  else if (t.hasAttribute('data-close')) { TQ_GON.clear(); S.open = null; }
   else if (t.dataset.view) { S.view = t.dataset.view; S.open = null; store.set('la-view', S.view); window.scrollTo(0, 0); }
   else if (t.dataset.fil) { S.fil = t.dataset.fil; S.view = 'tq'; }
   else if (t.hasAttribute('data-reload')) { lamMoiTatCa(); return; }
