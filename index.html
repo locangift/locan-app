@@ -83,10 +83,10 @@ td{padding:8px 4px 8px 0;border-bottom:1px solid var(--nga);vertical-align:top}t
 .ln .lr{display:flex;gap:6px;align-items:center;flex:none}
 .trk{height:8px;border-radius:4px;background:var(--nga)}.trk i{display:block;height:100%;border-radius:4px}
 /* chi tiết */
-.sheet{position:fixed;inset:0;top:env(safe-area-inset-top);z-index:40;background:var(--kem);overflow-y:auto;-webkit-overflow-scrolling:touch}
+.sheet{position:fixed;inset:0;top:calc(env(safe-area-inset-top) + 22px);z-index:40;background:var(--kem);overflow-y:auto;-webkit-overflow-scrolling:touch}
 @keyframes nhay{0%,45%{box-shadow:0 0 0 3px var(--vang)}100%{box-shadow:0 0 0 0 transparent}}.nhay{animation:nhay 2.6s ease-out}
 .sh{position:sticky;top:0;z-index:2;background:var(--son);color:var(--kem);display:flex;gap:10px;align-items:center;padding:calc(10px + env(safe-area-inset-top)) 14px 10px}
-.sh.shd{flex-wrap:wrap;gap:8px 10px;padding:14px 14px 12px}.sbbar{position:fixed;left:0;right:0;top:0;height:env(safe-area-inset-top);background:var(--son);z-index:41}.shd .back,.shd .ib{width:38px;height:38px}.shd .th.s44{width:40px;height:40px}.shm{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.shm b{font-size:18px;font-weight:700;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.shm span{font-size:12px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.shp{flex-basis:100%;margin:0;padding:8px 2px 0;border-top:1px solid rgba(247,242,233,.22);font-size:13px;line-height:1.45;opacity:.95;text-wrap:balance;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sh.shd{flex-wrap:wrap;gap:8px 10px;padding:14px 14px 12px}.sbbar{position:fixed;left:0;right:0;top:0;height:calc(env(safe-area-inset-top) + 22px);background:var(--son);z-index:41}.shd .back,.shd .ib{width:38px;height:38px}.shd .th.s44{width:40px;height:40px}.shm{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.shm b{font-size:18px;font-weight:700;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.shm span{font-size:12px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.shp{flex-basis:100%;margin:0;padding:8px 2px 0;border-top:1px solid rgba(247,242,233,.22);font-size:13px;line-height:1.45;opacity:.95;text-wrap:balance;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .back{width:44px;height:44px;border-radius:22px;border:0;background:var(--kem);color:var(--son);display:grid;place-items:center;cursor:pointer;flex:none}
 .metro{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));row-gap:12px}
 .mt{display:flex;flex-direction:column;align-items:center;gap:4px;position:relative}
@@ -917,7 +917,7 @@ function render() {
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.37'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.38'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
