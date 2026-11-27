@@ -175,6 +175,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 .hopb{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));z-index:40;border:0;border-radius:999px;background:var(--muc);color:var(--kem);padding:12px 18px;font-size:14.5px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.28);cursor:pointer;white-space:nowrap}
 .hopb[hidden]{display:none}
 .ntb{position:fixed;right:12px;bottom:calc(156px + env(safe-area-inset-bottom));z-index:41;border:0;border-radius:999px;background:var(--son);color:var(--kem);padding:9px 14px;font-size:14px;font-weight:700;line-height:1.2;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.30);display:flex;gap:5px;align-items:center;cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;opacity:.92}
+#upl{position:fixed;left:calc(50vw - min(150px, 50vw - 12px));top:calc(env(safe-area-inset-top) + 74px);z-index:110;display:flex;align-items:center;gap:10px;width:min(300px, calc(100vw - 24px));box-sizing:border-box;background:rgba(38,20,14,.92);color:#fff;border-radius:999px;padding:9px 16px 9px 10px;box-shadow:0 8px 24px rgba(0,0,0,.28);touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}#upl[hidden]{display:none}#upl.keo{cursor:grabbing;opacity:.92}#upl span{min-width:0}#upl b{display:block;font-size:14px;line-height:1.25}#upl small{display:block;font-size:11.5px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}#upl .xoay{flex:none;width:22px;height:22px;border-radius:50%;border:3px solid rgba(255,255,255,.25);border-top-color:#F2B544;animation:uplx .8s linear infinite}#upl .xong{flex:none;width:22px;height:22px;border-radius:50%;background:#2F7A4B;display:grid;place-items:center;font-style:normal;font-size:13px;font-weight:800}@keyframes uplx{to{transform:rotate(360deg)}}
 #ntb-le{position:fixed;inset:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);visibility:hidden;pointer-events:none}
 .ntb.keo{opacity:1;box-shadow:0 8px 22px rgba(0,0,0,.38)}.ntb[hidden]{display:none}
 .nta{width:100%;box-sizing:border-box;border:1px solid var(--ke);border-radius:12px;padding:12px;font:inherit;font-size:16px;line-height:1.45;min-height:96px;resize:vertical;background:#fff;color:var(--muc);margin-bottom:6px}
@@ -639,7 +640,7 @@ function render() {
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.25'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.26'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
@@ -1154,6 +1155,27 @@ function moNote(ma) {
   if (NOTE.nd) doanNote();
   moP('note'); setTimeout(() => { const t = $('#nt'); if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }, 80);
 }
+/* Khung chờ gửi file (anh Nix 27/11 17:07): vòng xoay + "Đợi xíu nha bác …", kéo đi đâu cũng được nhưng luôn trong màn hình (dùng chung cách kéo của nút Ghi chú, nhớ chỗ ở la-upl). */
+const UPL = { dang: false, xongLuc: 0, html: '' };
+const tenBac = () => { const n = String((S.data && S.data.nguoi) || '').replace(/^(anh|chị|chi|em)\s+/i, '').trim(); return n || 'ơi'; };
+function veUpl() {
+  let b = document.getElementById('upl');
+  const ds = HS.up.filter((u) => !u.done && !u.err), xep = HOP.busy;
+  const dang = ds.length > 0 || xep;
+  if (dang) UPL.dang = true; else if (UPL.dang) { UPL.dang = false; UPL.xongLuc = Date.now(); }
+  const hienXong = !dang && UPL.xongLuc && Date.now() - UPL.xongLuc < 1800;
+  if (!dang && !hienXong) { if (b && !b.hidden) b.hidden = true; return; }
+  if (!b) { b = document.createElement('div'); b.id = 'upl'; b.setAttribute('role', 'status'); b.setAttribute('aria-live', 'polite'); document.body.appendChild(b); keoNtb(b, 'la-upl'); }
+  let html;
+  if (dang) {
+    const tong = ds.reduce((a, u) => a + (u.size || 1), 0), pct = tong ? Math.round(ds.reduce((a, u) => a + (u.size || 1) * (u.pct || 0), 0) / tong) : 0;
+    const phu = ds.length ? `Đang gửi ${ds.length} file${ds.length === 1 ? ' · ' + String(ds[0].ten).split(' - ').pop() : ''} · ${pct}%` : 'Đang xếp file vào đơn…';
+    html = `<i class="xoay" aria-hidden="true"></i><span><b>Đợi xíu nha bác ${esc(tenBac())}…</b><small>${esc(phu)}</small></span>`;
+  } else html = `<i class="xong" aria-hidden="true">✓</i><span><b>Xong rồi nha bác ${esc(tenBac())}</b><small>File đã vào OneDrive</small></span>`;
+  if (html !== UPL.html) { UPL.html = html; b.innerHTML = html; }
+  if (b.hidden) { b.hidden = false; requestAnimationFrame(() => datNtb(b, 'la-upl')); }
+}
+setInterval(veUpl, 400);
 /* Nút ✏️ Ghi chú (anh Nix 15:12: "cho chạy tự do, nó choáng chỗ"; 15:19: "vẫn để chữ ghi chú", "chạy tự do nhưng vẫn trong màn hình"):
    giữ và kéo tới đâu thì nằm đó, luôn bị giữ trong màn hình (trừ tai thỏ, thanh home); chỗ đặt nhớ trên máy (la-ntb). Kéo xong không mở ghi chú. */
 const NTB = { keo: 0 };
@@ -1169,13 +1191,13 @@ function ganNtb(b, x, y) {
   b.style.left = Math.round(Math.min(Math.max(x, v.x0), Math.max(v.x0, v.x1))) + 'px';
   b.style.top = Math.round(Math.min(Math.max(y, v.y0), Math.max(v.y0, v.y1))) + 'px';
 }
-function datNtb(b) {
-  let p = null; try { p = JSON.parse(store.get('la-ntb') || 'null'); } catch (e) {}
+function datNtb(b, khoa) {
+  let p = null; try { p = JSON.parse(store.get(khoa || 'la-ntb') || 'null'); } catch (e) {}
   if (!p || p.cx == null) { b.style.left = b.style.top = b.style.right = b.style.bottom = ''; const r = b.getBoundingClientRect(); if (r.width) ganNtb(b, r.left, r.top); return; } /* chỗ mặc định (hoặc chỗ lưu kiểu cũ): vẫn kẹp trong màn hình */
   const v = vungNtb(b);
   ganNtb(b, p.cx * v.W - v.w / 2, p.cy * v.H - v.h / 2);
 }
-function keoNtb(b) {
+function keoNtb(b, khoa) {
   let x0 = 0, y0 = 0, l0 = 0, t0 = 0, dang = false, keo = false;
   b.addEventListener('pointerdown', (e) => { const r = b.getBoundingClientRect(); x0 = e.clientX; y0 = e.clientY; l0 = r.left; t0 = r.top; dang = true; keo = false; try { b.setPointerCapture(e.pointerId); } catch (x) {} });
   b.addEventListener('pointermove', (e) => {
@@ -1190,13 +1212,13 @@ function keoNtb(b) {
     if (!keo) return;
     NTB.keo = Date.now();
     const r = b.getBoundingClientRect(), v = vungNtb(b);
-    store.set('la-ntb', JSON.stringify({ cx: (r.left + r.width / 2) / v.W, cy: (r.top + r.height / 2) / v.H }));
+    store.set(khoa || 'la-ntb', JSON.stringify({ cx: (r.left + r.width / 2) / v.W, cy: (r.top + r.height / 2) / v.H }));
   };
   b.addEventListener('pointerup', tha); b.addEventListener('pointercancel', tha);
-  const lai = () => { if (!b.hidden) datNtb(b); };
+  const lai = () => { if (!b.hidden) datNtb(b, khoa); };
   window.addEventListener('resize', lai); if (window.visualViewport) window.visualViewport.addEventListener('resize', lai);
   window.addEventListener('orientationchange', () => setTimeout(lai, 300));
-  requestAnimationFrame(() => datNtb(b));
+  requestAnimationFrame(() => datNtb(b, khoa));
 }
 function paintNoteBtn() {
   let b = $('#ntb');
