@@ -535,7 +535,7 @@ function vDTKP(o, K) {
   if (K.ghi && Math.abs(K.ghi - K.tong) > 1000) sum += r('Tổng ghi trong ghi chú', vnd(K.ghi), 'wn');
   const dt = dtTruoc || o.dt;
   if (dt > 0 && K.tong > 0) { const lai = dt - K.tong; sum += r(dtTruoc ? 'Doanh thu chưa VAT' : 'Doanh thu dự kiến (sổ)', vnd(dt)) + r('Lãi dự kiến' + (K.thieu ? '*' : '') + ` <i>${Math.round(lai / dt * 100)}%</i>`, vnd(lai), lai >= 0 ? 'ok' : 'no'); }
-  if (o.dtkp > 0 && Math.abs(o.dtkp - K.tong) > 1000) sum += r('Sổ thu chi đang ghi DTKP', vnd(o.dtkp), 'wn');
+  if (o.dtkpSo > 0 && Math.abs(o.dtkpSo - K.tong) > 1000) sum += r('Sổ thu chi ghi (bản cũ, không dùng)', vnd(o.dtkpSo), 'wn');
   if (thieu.length) sum += `<p class="dkn">* Chưa tính ${thieu.length} khoản chưa có giá: ${esc(thieu.join(', '))}.</p>`;
   const n = K.n;
   return `<div class="dkh"><span>Dự trù kinh phí<small>${esc(n.ai || '')} · ${esc(n.t || '')} · từ ghi chú${K.soBan > 1 ? ` (bản mới nhất / ${K.soBan})` : ''}</small></span><b>${vnd(K.tong)}${K.thieu ? `<small>+ ${K.thieu} khoản chưa có giá</small>` : ''}</b></div><div class="dkls">${rows}</div><div class="dks">${sum}</div>`;
@@ -614,14 +614,14 @@ function vTien(o) {
     chiH = `<table class="tnt"><thead><tr><th>Hạng mục</th><th>DTKP</th><th>Thực tế</th><th>Lệch</th></tr></thead><tbody>${hang || '<tr><td colspan="4" class="na">Chưa có khoản chi nào trong sổ.</td></tr>'}</tbody><tfoot><tr><th>Tổng</th><td>${dkTong ? soVN(dkTong) : '–'}</td><td>${soVN(ttTong)}</td>${cl(dkTong, ttTong, dkTong > 0)}</tr></tfoot></table>`;
     const ghi = [];
     if (!DK && o.dtkp > 0) ghi.push('DTKP trong sổ chỉ có tổng, chưa chia hạng mục. Gõ DTKP từng khoản ở Ghi chú (bước DTKP) để app chia.');
-    if (DK && o.dtkp > 0 && Math.abs(o.dtkp - DK.tong) > 1000) ghi.push(`DTKP lấy từ ghi chú ${DK.n.t || ''}; sổ thu chi đang ghi ${vnd(o.dtkp)}.`);
+    if (DK && o.dtkpSo > 0 && Math.abs(o.dtkpSo - DK.tong) > 1000) ghi.push(`DTKP lấy theo ghi chú ${DK.n.t || ''} (sổ thu chi ghi ${vnd(o.dtkpSo)}, không dùng).`);
     if (DK && DK.thieu) ghi.push(`DTKP còn ${DK.thieu} khoản chưa có giá.`);
     if (noTong) ghi.push(`Còn ${vnd(noTong)} đã ghi nhưng chưa trả NCC.`);
     ghi.push('Chênh lệch = thực tế − DTKP: <span class="vuot">+ vượt dự trù</span>, <span class="duoi">− còn trong dự trù</span>.');
     chiH += `<div class="tnf">${ghi.map((g) => `<p>${g.startsWith('Chênh') ? g : esc(g)}</p>`).join('')}</div>`;
     if (chi.length) chiH += `<details class="tnx"><summary>Từng khoản chi (${chi.length})</summary><div class="tnl">${chi.map((x) => `<div class="tni${x[6] ? '' : ' chua'}"><div class="tnd">${esc(ddm(x[0]))}</div><div class="tnm"><b>${esc(HM[hmSo(x[2])])}${x[3] ? ' · ' + esc(x[3]) : ''}</b>${x[6] ? '' : '<span class="tnv w">chưa trả</span>'}<small>${esc(x[4])}</small></div><div class="tna">${vnd(x[5])}</div></div>`).join('')}</div></details>`;
   }
-  return `<div class="mut" style="font-weight:600">Tiền của đơn</div>${bar('Đã thu', o.daThu, o.dt, '#2F7A4B', 't', thu.length ? thu.length + ' lần' : '')}${thuH ? `<div class="tnc">${thuH}</div>` : ''}${bar('Đã chi', o.daChi, o.dtkp, '#8E2A1E', 'c', chi.length ? chi.length + ' khoản' : '')}${chiH ? `<div class="tnc">${chiH}</div>` : ''}${mo('t') || mo('c') ? '' : `<div class="mut" style="margin-top:8px">Doanh thu dự kiến ${vnd(o.dt)} · DTKP ${vnd(o.dtkp)} · còn phải thu ${vnd(o.phaiThu)}</div>`}`;
+  return `<div class="mut" style="font-weight:600">Tiền của đơn</div>${bar('Đã thu', o.daThu, o.dt, '#2F7A4B', 't', thu.length ? thu.length + ' lần' : '')}${thuH ? `<div class="tnc">${thuH}</div>` : ''}${bar('Đã chi', o.daChi, o.dtkp, '#8E2A1E', 'c', chi.length ? chi.length + ' khoản' : '')}${chiH ? `<div class="tnc">${chiH}</div>` : ''}${mo('t') || mo('c') ? '' : `<div class="mut" style="margin-top:8px">Doanh thu dự kiến ${vnd(o.dt)} · DTKP ${vnd(o.dtkp)}${o.dtkpTu ? ' (theo ghi chú)' : ''} · còn phải thu ${vnd(o.phaiThu)}</div>`}`;
 }
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-tn]'); if (!b || !S.open) return;
@@ -783,6 +783,18 @@ document.addEventListener('click', async (e) => {
 const BO_TRON_GOI = [5, 6, 7];
 const TRON_GOI = /lam tron goi|(ncc|nha cung cap|supplier)[^.|]{0,40}lam het/;
 const laTronGoi = (o, notes) => TRON_GOI.test(nd(o.ghiChu)) || (notes || []).some((n) => n.ma === o.ma && TRON_GOI.test(nd(n.nd)));
+/* 27/11 21:45 anh Nix: DTKP trong sổ lệch với DTKP gõ ở Ghi chú thì lấy theo Ghi chú (bản mới nhất). Số trong sổ giữ ở o.dtkpSo. */
+function apDTKP(data) {
+  (data.orders || []).forEach((o) => {
+    if (o.dtkpSo === undefined) o.dtkpSo = o.dtkp || 0;
+    const K = dtkpGhiChu(o);
+    if (K && K.tong > 0 && Math.abs(K.tong - o.dtkpSo) > 1000) {
+      o.dtkp = K.tong; o.dtkpTu = K.n.t || 'ghi chú';
+      if (o.dt > 0) o.lai = o.dt - o.dtkp;
+      o.conChi = Math.max(0, o.dtkp - (o.daChi || 0));
+    } else if (o.dtkpTu) { o.dtkp = o.dtkpSo; o.dtkpTu = ''; }
+  });
+}
 function boBuocTronGoi(data) {
   (data && data.orders || []).forEach((o) => {
     if (!laTronGoi(o, data.notes) || !o.steps || !o.steps.length) return;
@@ -871,7 +883,7 @@ function render() {
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.30'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.31'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
@@ -1483,7 +1495,7 @@ async function luuNote(xong) {
     const r = await api({ action: 'note', ma: ma === 'CHUNG' || ma === 'MOI' ? '' : ma, so, nd: ndGui, xong: !!xong, moi });
     NOTE.files = [];
     if (r.moi) { store.set('la-note-nhap', null); NOTE.nd = ''; NOTE.busy = false; dongP(); toast('Đã mở đơn ' + r.moi.ma + ' (Bid)'); S.moSau = fl.length ? { ma: r.moi.ma, muc: 'qt' } : r.moi.ma; load(S.code); if (fl.length) guiFileNote(r.moi.ma, fl); return; }
-    (S.data.notes = S.data.notes || []).unshift(r.note); boBuocTronGoi(S.data);
+    (S.data.notes = S.data.notes || []).unshift(r.note); boBuocTronGoi(S.data); apDTKP(S.data);
     if (r.note.xong) { const o = S.data.orders.find((x) => x.ma === ma), s = o && o.steps.find((x) => x.so === so); if (s) { s.tt = 'Xong'; s.xong = S.data.today; o.daXong = o.steps.filter((x) => x.tt === 'Xong').length; o.cur = o.steps.find((x) => x.tt !== 'Xong') || null; } }
     store.set('la-note-nhap', null); NOTE.nd = ''; NOTE.busy = false;
     dongP(); render();
@@ -1682,7 +1694,7 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#pov
 function loadAv() { api({ action: 'av' }).then((av) => { if (S.data && av && Object.keys(av).length) { S.data.av = Object.assign({}, S.data.av || {}, av); S.avOd = av; render(); } }).catch(() => {}); }
 function load(code, force) {
   S.busy = true; S.err = ''; render();
-  const ok = (data) => { boBuocTronGoi(data); S.busy = false; if (force) toast('Đã cập nhật số liệu lúc ' + (data.docLuc || '').slice(0, 5)); if (S.avOd) data.av = Object.assign({}, data.av || {}, S.avOd); const first = !S.data; S.data = data; S.code = code; store.set('la-code', code); render(); if (S.moSau) { const g = typeof S.moSau === 'string' ? { ma: S.moSau } : S.moSau; if (data.orders.some((o) => o.ma === g.ma)) { S.moSau = null; denDich(g); } else if (force) { S.moSau = null; toast('Chưa thấy đơn ' + g.ma + ' trong sổ'); } } if (first && !window.__MOCK) loadAv(); daTai(first); };
+  const ok = (data) => { boBuocTronGoi(data); S.busy = false; if (force) toast('Đã cập nhật số liệu lúc ' + (data.docLuc || '').slice(0, 5)); if (S.avOd) data.av = Object.assign({}, data.av || {}, S.avOd); const first = !S.data; S.data = data; apDTKP(data); S.code = code; store.set('la-code', code); render(); if (S.moSau) { const g = typeof S.moSau === 'string' ? { ma: S.moSau } : S.moSau; if (data.orders.some((o) => o.ma === g.ma)) { S.moSau = null; denDich(g); } else if (force) { S.moSau = null; toast('Chưa thấy đơn ' + g.ma + ' trong sổ'); } } if (first && !window.__MOCK) loadAv(); daTai(first); };
   const fail = (e) => { S.busy = false; const m = (e && e.message) || String(e); if (/mã đăng nhập/i.test(m)) { S.data = null; store.set('la-code', null); } S.err = m; render(); };
   if (window.google && google.script && google.script.run) google.script.run.withSuccessHandler(ok).withFailureHandler(fail).layDuLieu(code);
   else if (!window.__MOCK) fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ code, force: !!force }) })
