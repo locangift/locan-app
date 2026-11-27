@@ -902,7 +902,7 @@ function render() {
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.32'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.33'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
@@ -981,10 +981,16 @@ const fold = (x) => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').rep
 function loaiFile(f) { const t = fold('/' + (f.thu ? f.thu + '/' : '') + f.ten); if (BO.test(t)) return null; const l = LOAI.find((x) => x[2].test(t)); return l ? l[0] : null; }
 const goc = (f) => fold(f.ten).replace(/\.[a-z0-9]+$/, '').replace(/\(\d+\)|\bcopy\b|ban sao|\bfinal\b|\bv\d+\b|\(?\d{1,2}-\d{1,2}(-\d{2,4})?\)?/g, ' ').replace(/[\s_\-]+/g, ' ').trim();
 /* Trùng (cùng loại, cùng tên gốc, kể cả khác đuôi xlsx/pdf): chỉ hiện bản mới nhất */
+/* Cùng tên gốc có cả PDF và Excel/Word (vd báo giá xuất PDF kèm file Excel): lưu cách nhau dưới 2 giờ thì lấy bản PDF, còn lại lấy bản mới nhất */
+function hon(f, cur) {
+  const pf = /pdf/.test(f.loai || ''), pc = /pdf/.test(cur.loai || ''), lech = Math.abs(Date.parse(f.sua) - Date.parse(cur.sua));
+  if (pf !== pc && lech < 2 * 3600e3) return pf;
+  return f.sua > cur.sua || (f.sua === cur.sua && pf);
+}
 function locHoSo(files) {
   const by = {};
   (files || []).forEach((f) => { const k = loaiFile(f); if (!k) return; const g = k + '|' + goc(f); const cur = by[g];
-    if (!cur || f.sua > cur.sua || (f.sua === cur.sua && /pdf/.test(f.loai))) by[g] = Object.assign({ k }, f); });
+    if (!cur || hon(f, cur)) by[g] = Object.assign({ k }, f); });
   return Object.values(by).sort((a, b) => (a.sua < b.sua ? 1 : -1));
 }
 /* 27/11 15:56 anh Nix: bỏ khung "Hồ sơ đơn hàng" (Quy trình đơn đã có ＋ và Mở cho từng chứng từ).
