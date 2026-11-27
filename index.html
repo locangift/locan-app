@@ -560,7 +560,7 @@ function render() {
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.12'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.13'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
@@ -1247,7 +1247,7 @@ function tbTai() {
   if (tbDangTai) return tbDangTai;
   tbDangTai = (async () => {
     let ds = await tbDocMay(), nguon = 'may';
-    if (S.data) { try { const sv = await api({ action: 'tbds' }); if (Array.isArray(sv)) { ds = sv; nguon = 'sv'; } } catch (e) {} }
+    if (S.data) { try { const sv = await api({ action: 'tbds' }); if (Array.isArray(sv)) { ds = sv.concat(ds.filter((m) => !sv.some((x) => x.td === m.td && x.nd === m.nd && Math.abs((x.t || 0) - (m.t || 0)) < 180000))); nguon = 'sv'; } } catch (e) {} } /* gộp lịch sử máy chủ (tab Thông báo, từ 27/11 14:48) với thông báo máy này đã nhận, bỏ trùng */
     TBL.ds = ds.filter((x) => x && x.t).sort((a, b) => b.t - a.t); TBL.nguon = nguon; paintBell(); if (POV.mode === 'tb') vTB();
   })().finally(() => { tbDangTai = null; });
   return tbDangTai;
