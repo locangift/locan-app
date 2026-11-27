@@ -874,20 +874,26 @@ document.addEventListener('click', (e) => {
 });
 /* Ô "Đã hoàn thành": phải đủ 3 người đồng ý (27/11 23:29 anh Nix). Đồng ý lưu ở máy chủ (data.duyet["mã|bước"] = {người: giờ}) */
 const BA_NGUOI = [['Nix', 'Nix'], ['anh Tâm', 'Tâm'], ['anh Trung', 'Trung']];
+/* 27/11 23:34 anh Nix: người xác nhận từng bước (Trung: 1, 8, 9 thu; Tâm: 2-7, 9 trả NCC; bước 10 cả 3). 23:35: anh Nix xác nhận được mọi bước, bước 1-9 anh xác nhận là xong luôn */
+const DUYET_AI = { 1: ['anh Trung'], 2: ['anh Tâm'], 3: ['anh Tâm'], 4: ['anh Tâm'], 5: ['anh Tâm'], 6: ['anh Tâm'], 7: ['anh Tâm'], 8: ['anh Trung'], 9: ['anh Trung', 'anh Tâm'], 10: ['Nix', 'anh Tâm', 'anh Trung'] };
+const duocDuyet = (so) => S.data && (S.data.nguoi === 'Nix' || (DUYET_AI[so] || []).includes(S.data.nguoi));
 function vHoanThanh(o, s) {
-  const dy = ((S.data && S.data.duyet) || {})[o.ma + '|' + s.so] || {}, me = S.data.nguoi, n = BA_NGUOI.filter(([k]) => dy[k]).length, toi = !!dy[me];
-  return `<div class="htx"><div class="hth"><b>Đã hoàn thành</b><span>${n}/3 người đồng ý</span></div><div class="htn">${BA_NGUOI.map(([k, t]) => `<span class="${dy[k] ? 'ok' : ''}">${dy[k] ? '✓' : '○'} ${t}${dy[k] ? `<small>${esc(dy[k])}</small>` : ''}</span>`).join('')}</div><button class="${toi ? 'bpb2' : 'hgo'}" data-duyet="${toi ? 0 : 1}">${toi ? 'Bỏ đồng ý của tôi' : '✓ Tôi đồng ý đã xong'}</button></div>`;
+  const dy = ((S.data && S.data.duyet) || {})[o.ma + '|' + s.so] || {}, me = S.data.nguoi, can = DUYET_AI[s.so] || BA_NGUOI.map((x) => x[0]);
+  const ai = BA_NGUOI.filter(([k]) => can.includes(k) || dy[k]), n = can.filter((k) => dy[k]).length, toi = !!dy[me];
+  const ghi = s.so === 9 ? 'Trung xác nhận thu đủ, Tâm xác nhận trả đủ NCC' : s.so >= 10 ? 'Cần cả 3 người xác nhận' : '';
+  const nut = duocDuyet(s.so) ? `<button class="${toi ? 'bpb2' : 'hgo'}" data-duyet="${toi ? 0 : 1}">${toi ? 'Bỏ xác nhận của tôi' : '✓ Tôi xác nhận đã xong'}</button>` : `<div class="mut" style="text-align:center">Chờ ${esc(can.filter((k) => !dy[k]).map((k) => (BA_NGUOI.find((x) => x[0] === k) || [k, k])[1]).join(', '))} xác nhận</div>`;
+  return `<div class="htx"><div class="hth"><b>Đã hoàn thành</b><span>${n}/${can.length} xác nhận</span></div>${ghi ? `<div class="mut">${ghi}</div>` : ''}<div class="htn">${ai.map(([k, t]) => `<span class="${dy[k] ? 'ok' : ''}">${dy[k] ? '✓' : '○'} ${t}${dy[k] ? `<small>${esc(dy[k])}</small>` : ''}</span>`).join('')}</div>${nut}</div>`;
 }
 document.addEventListener('click', async (e) => {
   const b = e.target.closest('[data-duyet]'); if (!b || !S.open || BP.ma !== S.open || !BP.so) return;
   const ma = S.open, so = BP.so, ok = b.dataset.duyet === '1';
-  if (ok && !confirm('Anh đồng ý bước "' + (STEP[so - 1] || '') + '" của đơn ' + ma + ' đã hoàn thành?\n\nĐủ 3 người đồng ý thì bước tự chuyển Xong.')) return;
+  if (ok && !confirm('Xác nhận bước "' + (STEP[so - 1] || '') + '" của đơn ' + ma + ' đã xong?')) return;
   b.disabled = true; b.textContent = 'Đang lưu…';
   try {
     const r = await api({ action: 'duyet', ma, so, ok });
     (S.data.duyet = S.data.duyet || {})[ma + '|' + so] = r.duyet || {};
-    if (r.xong) { const o = S.data.orders.find((x) => x.ma === ma), st = o && o.steps.find((x) => x.so === so); if (st) { st.tt = 'Xong'; st.xong = S.data.today; o.daXong = o.steps.filter((x) => x.tt === 'Xong').length; o.cur = o.steps.find((x) => x.tt !== 'Xong') || null; } toast('Đủ 3 người: bước đã hoàn thành ✓'); load(S.code); }
-    else toast(ok ? 'Đã ghi đồng ý của anh, chờ người còn lại' : 'Đã bỏ đồng ý');
+    if (r.xong) { const o = S.data.orders.find((x) => x.ma === ma), st = o && o.steps.find((x) => x.so === so); if (st) { st.tt = 'Xong'; st.xong = S.data.today; o.daXong = o.steps.filter((x) => x.tt === 'Xong').length; o.cur = o.steps.find((x) => x.tt !== 'Xong') || null; } toast('Bước đã hoàn thành ✓'); load(S.code); }
+    else toast(ok ? 'Đã ghi xác nhận, chờ người còn lại' : 'Đã bỏ xác nhận');
     paintTL();
   } catch (x) { alert('Chưa ghi được: ' + x.message); paintTL(); }
 });
@@ -903,7 +909,7 @@ function vTL(o) {
     ${bdForm(s)}
     ${noteBuoc(o, s.so)}
     ${s.so === 8 ? hgForm(o, (String(s.viec || '').match(/^Giao lúc (\d{1,2}:\d{2})/) || [])[1] || '') : ''}
-    ${s.tt === 'Xong' ? (s.so >= 10 ? '' : `<button class="bpb2" data-bxn="0">Bỏ xác nhận</button>`) : vHoanThanh(o, s)}</div>` : '<div class="mut" style="margin-top:8px">Bấm vào từng bước để xem khi nào xong và xác nhận.</div>';
+    ${s.tt === 'Xong' ? (s.so >= 10 || !duocDuyet(s.so) ? '' : `<button class="bpb2" data-bxn="0">Bỏ xác nhận</button>`) : vHoanThanh(o, s)}</div>` : '<div class="mut" style="margin-top:8px">Bấm vào từng bước để xem khi nào xong và xác nhận.</div>';
   return `<div class="mut" style="font-weight:600;margin-bottom:10px">Sơ đồ ${o.steps.length} bước · xong ${o.daXong}/${o.steps.length}${o.tronGoi ? '<span class="tgn">NCC làm trọn gói: không theo dõi NVL, In, Thành phẩm</span>' : ''}</div><div class="metro">${metro}</div>${bp}`;
 }
 function paintTL() { const el = document.getElementById('tl'), o = S.open && S.data && S.data.orders.find((x) => x.ma === S.open); if (el && o) el.innerHTML = vTL(o); }
@@ -918,8 +924,8 @@ async function xacNhanBuoc(ma, so, xong) {
 /* Gửi file sản xuất xong: hỏi đã đủ chưa, đủ thì đánh dấu bước 4 */
 function hoiDuFileSX(ma) {
   const o = S.data && S.data.orders.find((x) => x.ma === ma), s = o && o.steps.find((x) => x.so === 4);
-  if (!s || s.tt === 'Xong') return;
-  if (confirm('Đã đủ file sản xuất cho đơn ' + ma + ' chưa?\n\nOK: đủ rồi, đánh dấu bước File sản xuất xong.\nHủy: chưa đủ, sẽ gửi thêm.')) xacNhanBuoc(ma, 4, true);
+  if (!s || s.tt === 'Xong' || !duocDuyet(4)) return;
+  if (confirm('Đã đủ file sản xuất cho đơn ' + ma + ' chưa?\n\nOK: đủ rồi, xác nhận bước File sản xuất xong.\nHủy: chưa đủ, sẽ gửi thêm.')) api({ action: 'duyet', ma, so: 4, ok: true }).then((r) => { (S.data.duyet = S.data.duyet || {})[ma + '|4'] = r.duyet || {}; if (r.xong) { s.tt = 'Xong'; s.xong = S.data.today; load(S.code); } paintTL(); }).catch((x) => alert('Chưa ghi được: ' + x.message));
 }
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-buoc]');
@@ -986,7 +992,7 @@ function render() {
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.48'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.49'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
