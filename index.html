@@ -173,8 +173,9 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 /* Hộp thư đến + thông báo */
 .hopb{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));z-index:40;border:0;border-radius:999px;background:var(--muc);color:var(--kem);padding:12px 18px;font-size:14.5px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.28);cursor:pointer;white-space:nowrap}
 .hopb[hidden]{display:none}
-.ntb{position:fixed;right:12px;bottom:calc(156px + env(safe-area-inset-bottom));z-index:41;width:50px;height:50px;padding:0;border:0;border-radius:25px;background:var(--son);color:var(--kem);font-size:21px;line-height:1;box-shadow:0 4px 14px rgba(0,0,0,.30);display:grid;place-items:center;cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none;opacity:.9;transition:left .2s ease,top .2s ease}
-.ntb.keo{transition:none;opacity:1;transform:scale(1.1)}.ntb[hidden]{display:none}
+.ntb{position:fixed;right:12px;bottom:calc(156px + env(safe-area-inset-bottom));z-index:41;border:0;border-radius:999px;background:var(--son);color:var(--kem);padding:9px 14px;font-size:14px;font-weight:700;line-height:1.2;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.30);display:flex;gap:5px;align-items:center;cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;opacity:.92}
+#ntb-le{position:fixed;inset:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);visibility:hidden;pointer-events:none}
+.ntb.keo{opacity:1;box-shadow:0 8px 22px rgba(0,0,0,.38)}.ntb[hidden]{display:none}
 .nta{width:100%;box-sizing:border-box;border:1px solid var(--ke);border-radius:12px;padding:12px;font:inherit;font-size:16px;line-height:1.45;min-height:96px;resize:vertical;background:#fff;color:var(--muc);margin-bottom:6px}
 .nai{font-weight:600;font-size:11px;color:var(--ok);background:var(--okb);border-radius:6px;padding:1px 6px;margin-left:6px;text-transform:none;letter-spacing:0}
 .schips button.on{background:var(--son);border-color:var(--son);color:var(--kem)}
@@ -568,7 +569,7 @@ function render() {
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.16'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.17'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
@@ -1091,16 +1092,26 @@ function moNote(ma) {
   if (NOTE.nd) doanNote();
   moP('note'); setTimeout(() => { const t = $('#nt'); if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }, 80);
 }
-/* Nút ✏️ Ghi nhanh (anh Nix 15:12: "cho chạy tự do, nó choáng chỗ quá"): nút tròn nhỏ, giữ và kéo đi đâu cũng được,
-   thả ra thì nép vào mép trái/phải gần nhất; chỗ đặt nhớ trên máy (la-ntb). Kéo xong không mở ghi chú. */
+/* Nút ✏️ Ghi chú (anh Nix 15:12: "cho chạy tự do, nó choáng chỗ"; 15:19: "vẫn để chữ ghi chú", "chạy tự do nhưng vẫn trong màn hình"):
+   giữ và kéo tới đâu thì nằm đó, luôn bị giữ trong màn hình (trừ tai thỏ, thanh home); chỗ đặt nhớ trên máy (la-ntb). Kéo xong không mở ghi chú. */
 const NTB = { keo: 0 };
+function vungNtb(b) {
+  let le = document.getElementById('ntb-le'); if (!le) { le = document.createElement('div'); le.id = 'ntb-le'; document.body.appendChild(le); }
+  const c = getComputedStyle(le), px = (v) => parseFloat(v) || 0, vv = window.visualViewport;
+  const W = vv ? vv.width : window.innerWidth, H = vv ? vv.height : window.innerHeight, r = b.getBoundingClientRect();
+  return { x0: 6 + px(c.paddingLeft), y0: 6 + px(c.paddingTop), x1: W - r.width - 6 - px(c.paddingRight), y1: H - r.height - 6 - px(c.paddingBottom), W, H, w: r.width, h: r.height };
+}
+function ganNtb(b, x, y) {
+  const v = vungNtb(b);
+  b.style.right = b.style.bottom = 'auto';
+  b.style.left = Math.round(Math.min(Math.max(x, v.x0), Math.max(v.x0, v.x1))) + 'px';
+  b.style.top = Math.round(Math.min(Math.max(y, v.y0), Math.max(v.y0, v.y1))) + 'px';
+}
 function datNtb(b) {
   let p = null; try { p = JSON.parse(store.get('la-ntb') || 'null'); } catch (e) {}
-  if (!p) { b.style.left = b.style.top = ''; b.style.right = b.style.bottom = ''; return; }
-  const W = window.innerWidth, H = window.innerHeight;
-  b.style.right = b.style.bottom = 'auto';
-  b.style.left = (p.ben === 'l' ? 10 : W - 60) + 'px';
-  b.style.top = Math.min(H - 60, Math.max(10, p.t * H)) + 'px';
+  if (!p || p.cx == null) { b.style.left = b.style.top = b.style.right = b.style.bottom = ''; const r = b.getBoundingClientRect(); if (r.width) ganNtb(b, r.left, r.top); return; } /* chỗ mặc định (hoặc chỗ lưu kiểu cũ): vẫn kẹp trong màn hình */
+  const v = vungNtb(b);
+  ganNtb(b, p.cx * v.W - v.w / 2, p.cy * v.H - v.h / 2);
 }
 function keoNtb(b) {
   let x0 = 0, y0 = 0, l0 = 0, t0 = 0, dang = false, keo = false;
@@ -1109,28 +1120,27 @@ function keoNtb(b) {
     if (!dang) return;
     const dx = e.clientX - x0, dy = e.clientY - y0;
     if (!keo && Math.hypot(dx, dy) < 8) return;
-    keo = true; b.classList.add('keo');
-    const W = window.innerWidth, H = window.innerHeight;
-    b.style.right = b.style.bottom = 'auto';
-    b.style.left = Math.min(W - 54, Math.max(4, l0 + dx)) + 'px';
-    b.style.top = Math.min(H - 54, Math.max(4, t0 + dy)) + 'px';
+    keo = true; b.classList.add('keo'); e.preventDefault();
+    ganNtb(b, l0 + dx, t0 + dy);
   });
   const tha = () => {
     if (!dang) return; dang = false; b.classList.remove('keo');
     if (!keo) return;
     NTB.keo = Date.now();
-    const r = b.getBoundingClientRect(), W = window.innerWidth, H = window.innerHeight;
-    store.set('la-ntb', JSON.stringify({ ben: r.left + r.width / 2 < W / 2 ? 'l' : 'r', t: r.top / H }));
-    datNtb(b);
+    const r = b.getBoundingClientRect(), v = vungNtb(b);
+    store.set('la-ntb', JSON.stringify({ cx: (r.left + r.width / 2) / v.W, cy: (r.top + r.height / 2) / v.H }));
   };
   b.addEventListener('pointerup', tha); b.addEventListener('pointercancel', tha);
-  window.addEventListener('resize', () => datNtb(b));
-  datNtb(b);
+  const lai = () => { if (!b.hidden) datNtb(b); };
+  window.addEventListener('resize', lai); if (window.visualViewport) window.visualViewport.addEventListener('resize', lai);
+  window.addEventListener('orientationchange', () => setTimeout(lai, 300));
+  requestAnimationFrame(() => datNtb(b));
 }
 function paintNoteBtn() {
   let b = $('#ntb');
-  if (!b) { b = document.createElement('button'); b.id = 'ntb'; b.className = 'ntb'; b.setAttribute('data-nnew', ''); b.setAttribute('aria-label', 'Ghi chú nhanh (giữ và kéo để dời chỗ)'); b.title = 'Ghi chú nhanh · kéo để dời chỗ'; b.innerHTML = '<span aria-hidden="true">✏️</span>'; document.body.appendChild(b); keoNtb(b); }
-  b.hidden = !S.data || !$('#pov').hidden || !$('#sov').hidden;
+  if (!b) { b = document.createElement('button'); b.id = 'ntb'; b.className = 'ntb'; b.setAttribute('data-nnew', ''); b.setAttribute('aria-label', 'Ghi chú nhanh (giữ và kéo để dời chỗ)'); b.title = 'Ghi chú nhanh · giữ và kéo để dời chỗ'; b.innerHTML = '<span aria-hidden="true">✏️</span>Ghi chú'; document.body.appendChild(b); keoNtb(b); }
+  const an = b.hidden; b.hidden = !S.data || !$('#pov').hidden || !$('#sov').hidden;
+  if (an && !b.hidden) requestAnimationFrame(() => datNtb(b));
 }
 async function luuNote(xong) {
   const v = NOTE.nd.trim();
