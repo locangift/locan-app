@@ -175,6 +175,9 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 .hgo:disabled{opacity:.55}.hgo2{background:#fff;color:var(--son);border:1px solid var(--ke)}
 .note{background:#fff;border-radius:12px;padding:12px;font-size:14px;line-height:1.5;margin-bottom:10px}
 .hbtns{display:flex;gap:8px}.ib{position:relative}
+.ib .bdg{position:absolute;top:-5px;right:-5px;min-width:19px;height:19px;padding:0 5px;border-radius:10px;background:#E5484D;color:#fff;font-size:11px;font-weight:700;line-height:19px;text-align:center;border:1.5px solid var(--son);box-sizing:border-box}.ib .bdg[hidden]{display:none}
+.tbl{display:flex;flex-direction:column;gap:8px}.tbi{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;text-align:left;border:1px solid var(--ke);background:#fff;border-radius:12px;padding:10px 12px;cursor:pointer;color:var(--muc);font:inherit}
+.tbi b{font-size:14.5px}.tbi span{font-size:13.5px;line-height:1.4}.tbi small{font-size:11.5px;color:var(--nhat)}.tbi.moi{border-left:4px solid var(--son);background:#FFF8F0}.tbcd{margin-top:16px}.tbcd summary{font-weight:700;color:var(--nhat);font-size:13px;cursor:pointer;padding:8px 0}
 .ib .dot{position:absolute;top:8px;right:9px;width:9px;height:9px;border-radius:5px;background:#F2B544;border:1.5px solid var(--son)}.ib .dot[hidden]{display:none}
 .t1{font-size:14.5px;font-weight:600;line-height:1.5;color:var(--muc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gcd{margin-top:6px}.gcd p{font-size:13.5px;line-height:1.55;margin:6px 0;color:var(--muc)}
 .hh2{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}.hh2 b{font-size:15px}
@@ -225,7 +228,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 <body>
 <div id="app"><div class="load">Đang mở…</div></div>
 <div class="sov" id="sov" hidden role="dialog" aria-label="Tìm đơn hàng"><div class="stop"><div class="sbox"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E2A1E" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="sq" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="Mã đơn, khách, sản phẩm…" aria-label="Từ khoá"><button id="sclr" aria-label="Xoá chữ" hidden>✕</button></div><button class="sx" id="sclose">Đóng</button></div><div class="sbody" id="sres"></div></div>
-<div class="sov" id="pov" hidden role="dialog" aria-labelledby="pov-t"><div class="stop"><b id="pov-t" style="flex:1;color:var(--kem);font-size:17px;padding-left:4px">Lộc Ấn</b><button class="sx" id="pclose">Đóng</button></div><div class="sbody" id="pres"></div></div>
+<div class="sov" id="pov" hidden role="dialog" aria-labelledby="pov-t"><div class="stop"><b id="pov-t" style="flex:1;color:var(--kem);font-size:17px;padding-left:4px">Lộc Ấn</b><button class="ib" data-reload aria-label="Làm mới" style="width:40px;height:40px;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></button><button class="sx" id="pclose">Đóng</button></div><div class="sbody" id="pres"></div></div>
 
 <script>
 {
@@ -283,7 +286,9 @@ function due(o) {
   return ['Còn ' + d + ' ngày · ' + dm(o.han), d <= 5 ? 't-warn' : 't-ok'];
 }
 function rank(o) { const t = S.data.today; if (o.tre) return -1000 - o.treNgay; if (o.han && !o.giaoXong) return days(o.han, t); return 500; }
-const ordersBy = (tt) => S.data.orders.filter((o) => o.tt === tt).sort((a, b) => rank(a) - rank(b));
+/* Đơn Bid: mới nhận ở trên (anh Nix 27/11/2026) */
+const moiTruoc = (l) => l.map((o, i) => [o, i]).sort((a, b) => (b[0].nhan || '').localeCompare(a[0].nhan || '') || b[1] - a[1]).map((x) => x[0]);
+const ordersBy = (tt) => { const L = S.data.orders.filter((o) => o.tt === tt); return tt === 'Bid' ? moiTruoc(L) : L.sort((a, b) => rank(a) - rank(b)); };
 function ring(p, late) { const C = 2 * Math.PI * 22, d = (p / 100 * C).toFixed(1); return `<div class="ring"><svg width="56" height="56" viewBox="0 0 56 56" role="img" aria-label="Tiến độ ${p} phần trăm"><circle cx="28" cy="28" r="22" fill="none" stroke="#EDE4D6" stroke-width="6"/><circle cx="28" cy="28" r="22" fill="none" stroke="${late ? '#B3261E' : '#8E2A1E'}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${d} ${C.toFixed(1)}" transform="rotate(-90 28 28)"/></svg><span>${p}%</span></div>`; }
 
 function card(o) {
@@ -504,7 +509,7 @@ document.addEventListener('click', (e) => {
 function vChiTiet(o) {
   const [dl, dc] = due(o), t = S.data.today;
   const bar = (lab, a, b, col) => `<div style="margin-top:8px"><div class="lt" style="display:flex;justify-content:space-between;font-size:12.5px"><span style="font-weight:600">${lab}</span><span><b>${tr(a)}</b> / ${tr(b)}</span></div><div class="trk" style="height:12px;margin-top:3px"><i style="width:${b ? Math.min(100, Math.round(a / b * 100)) : 0}%;background:${col}"></i></div></div>`;
-  return `<div class="sh"><button class="back" data-close aria-label="Quay lại"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>${thumb(o, 's44')}<div style="display:flex;flex-direction:column;min-width:0"><span class="ser" style="font-size:19px;font-weight:700">${esc(o.ma)}</span><span class="sub">${esc(o.sp)} · ${esc(o.kh)}</span></div></div>
+  return `<div class="sh"><button class="back" data-close aria-label="Quay lại"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>${thumb(o, 's44')}<div style="display:flex;flex-direction:column;min-width:0"><span class="ser" style="font-size:19px;font-weight:700">${esc(o.ma)}</span><span class="sub">${esc(o.sp)} · ${esc(o.kh)}</span></div><button class="ib ${S.busy ? 'spin' : ''}" data-reload aria-label="Làm mới" style="margin-left:auto;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></button></div>
   <main style="padding-bottom:40px">
   <div class="tags" style="margin-bottom:10px"><span class="tag ${ttCls(o)}">${esc(o.tt)}</span><span class="tag ${dc}">${esc(dl)}</span>${o.cur && o.tt === 'Run' ? `<span class="tag">Chờ ${esc(o.cur.ai)}</span>` : ''}${o.canhBao && o.canhBao !== 'OK' ? `<span class="tag t-bad">${esc(o.canhBao)}</span>` : ''}</div>
   <div class="card" id="ttdon">${vTT(o)}</div>
@@ -527,16 +532,17 @@ function render() {
   const V = { tq: vTongQuan, td: vTienDo, lg: vLich, tc: vThuChi }[S.view] || vTongQuan;
   const tabs = [['tq', 'Tổng quan'], ['td', 'Tiến độ'], ['lg', 'Lịch giao'], ['tc', 'Thu chi']];
   const o = S.open && d.orders.find((x) => x.ma === S.open);
-  app.innerHTML = `<header><div class="hr"><div><div class="brand">LỘC ẤN</div><div class="sub">Chào ${esc(d.nguoi)} · số liệu lúc ${esc(d.docLuc || '')}</div></div><div class="hbtns"><button class="ib" data-tb aria-label="Thông báo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9a6 6 0 1 1 12 0c0 6 2.5 8 2.5 8h-17S6 15 6 9"/><path d="M10.2 20.5a2 2 0 0 0 3.6 0"/></svg><i class="dot" ${tbDaBat() ? 'hidden' : ''}></i></button><button class="ib ${S.busy ? 'spin' : ''}" data-reload aria-label="Làm mới số liệu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></button></div></div>
+  app.innerHTML = `<header><div class="hr"><div><div class="brand">LỘC ẤN</div><div class="sub">Chào ${esc(d.nguoi)} · số liệu lúc ${esc(d.docLuc || '')}</div></div><div class="hbtns"><button class="ib" data-tb aria-label="Thông báo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9a6 6 0 1 1 12 0c0 6 2.5 8 2.5 8h-17S6 15 6 9"/><path d="M10.2 20.5a2 2 0 0 0 3.6 0"/></svg><i class="dot" ${tbDaBat() || tbChuaXem() ? 'hidden' : ''}></i><b class="bdg" ${tbChuaXem() ? '' : 'hidden'}>${tbChuaXem() > 9 ? '9+' : tbChuaXem()}</b></button><button class="ib ${S.busy ? 'spin' : ''}" data-reload aria-label="Làm mới số liệu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></button></div></div>
   <button class="sbtn" data-search><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Tìm đơn hàng, khách, sản phẩm…</button>
   ${S.view === 'tq' ? `<div class="stats"><button class="st" data-fil="Run"><b>${run.length}</b><span>đơn đang chạy</span></button><button class="st ${late ? 'hot' : ''}" data-fil="Run"><b>${late}</b><span>đơn có bước trễ</span></button><button class="st" data-view="td"><b>${mine}</b><span>đơn chờ ${esc(d.nguoi)}</span></button></div>` : ''}</header>
   <main>${S.err ? `<div class="err" style="margin-bottom:10px">${esc(S.err)}</div>` : ''}${V()}</main>
   <nav class="tabs" aria-label="Mục">${tabs.map((t) => `<button class="tab" data-view="${t[0]}" ${S.view === t[0] ? 'aria-current="page"' : ''}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${svgTab[t[0]]}</svg>${t[1]}</button>`).join('')}</nav>
   ${o ? `<div class="sheet" role="dialog" aria-label="${esc(o.ma)}">${vChiTiet(o)}</div>` : ''}`;
   paintNoteBtn();
+  document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.6'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.7'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
@@ -779,12 +785,12 @@ function donOpts() {
   const L = S.data.orders.filter((o) => o.tt !== 'Failed' && (!q || fold([o.ma, o.kh, o.sp].join(' ')).includes(q)));
   if (q && L.length === 1) HOP.ma = L[0].ma;
   return `<option value="">${L.length ? '— Chọn đơn hàng —' : 'Không có đơn khớp'}</option>` + G.map(([tt, ten]) => {
-    const l = L.filter((o) => o.tt === tt);
+    let l = L.filter((o) => o.tt === tt); if (tt === 'Bid') l = moiTruoc(l);
     return l.length ? `<optgroup label="${ten}">${l.map((o) => `<option value="${esc(o.ma)}" ${o.ma === HOP.ma ? 'selected' : ''}>${esc(o.ma)}</option>`).join('')}</optgroup>` : '';
   }).join('');
 }
 function moP(mode) { POV.mode = mode; $('#pov').hidden = false; paintHopBtn(); if (mode === 'hop') vHop(); else if (mode === 'note') vNote(); else vTB(); }
-function dongP() { POV.mode = ''; $('#pov').hidden = true; paintHopBtn(); }
+function dongP() { if (POV.mode === 'tb') store.set('la-tb-xem', String(Date.now())); POV.mode = ''; $('#pov').hidden = true; paintHopBtn(); paintBell(); }
 function vHop() {
   const L = hopItems();
   $('#pov-t').textContent = 'Xếp file vào đơn';
@@ -913,7 +919,7 @@ function noteBuoc(o, so) { const L = notesCua(o.ma).filter((n) => n.so === so).s
 function noteDonOpts() {
   const G = [['Run', 'Đang chạy'], ['Giao hàng', 'Đã giao'], ['Bid', 'Báo giá'], ['Done', 'Đã xong']], L = S.data.orders.filter((o) => o.tt !== 'Failed');
   return `<option value="">— Chọn đơn hàng —</option><option value="MOI" ${NOTE.ma === 'MOI' ? 'selected' : ''}>➕ Đơn mới / khách mới…</option><option value="CHUNG" ${NOTE.ma === 'CHUNG' ? 'selected' : ''}>Việc chung (không thuộc đơn nào)</option>` + G.map(([tt, ten]) => {
-    const l = L.filter((o) => o.tt === tt);
+    let l = L.filter((o) => o.tt === tt); if (tt === 'Bid') l = moiTruoc(l);
     return l.length ? `<optgroup label="${ten}">${l.map((o) => `<option value="${esc(o.ma)}" ${o.ma === NOTE.ma ? 'selected' : ''}>${esc(o.ma)}</option>`).join('')}</optgroup>` : '';
   }).join('');
 }
@@ -1013,7 +1019,7 @@ const tenMay = () => laIOS ? 'iPhone' : /Android/.test(navigator.userAgent) ? 'A
 let swReg = null;
 if ('serviceWorker' in navigator && window.isSecureContext && !window.__MOCK) {
   navigator.serviceWorker.register('./sw.js').then((r) => { swReg = r; }).catch(() => {});
-  navigator.serviceWorker.addEventListener('message', (e) => { if (e.data && e.data.mo) moLink(e.data.mo); });
+  navigator.serviceWorker.addEventListener('message', (e) => { if (e.data && e.data.mo) moLink(e.data.mo); if (e.data && e.data.tb) tbTai(); });
 }
 function moLink(url) {
   try {
@@ -1052,23 +1058,42 @@ function tbSync() {
   if (!tbDaBat() || window.__MOCK) return;
   layToken().then((t) => { if (t && t !== store.get('la-tb')) return api({ action: 'tbdk', token: t, may: tenMay() }).then(() => store.set('la-tb', t)); }).catch(() => {});
 }
-function paintBell() { const d = document.querySelector('[data-tb] .dot'); if (d) d.hidden = tbDaBat(); }
+function paintBell() { const n = tbChuaXem(), d = document.querySelector('[data-tb] .dot'), b = document.querySelector('[data-tb] .bdg'); if (d) d.hidden = tbDaBat() || n > 0; if (b) { b.hidden = !n; b.textContent = n > 9 ? '9+' : String(n); } }
+/* Lịch sử thông báo, mới nhất ở trên (anh Nix 27/11/2026). Nguồn: máy chủ (action tbds) nếu có, không thì danh sách sw.js lưu trên máy này */
+const TBL = { ds: [], xemTruoc: 0, nguon: '' };
+const tbXem = () => +(store.get('la-tb-xem') || 0);
+const tbChuaXem = () => TBL.ds.filter((x) => x.t > tbXem()).length;
+async function tbDocMay() { try { const c = await caches.open('la-tb'), r = await c.match(new URL('./_tb', location.href).href); return r ? await r.json() : []; } catch (e) { return []; } }
+let tbDangTai = null;
+function tbTai() {
+  if (tbDangTai) return tbDangTai;
+  tbDangTai = (async () => {
+    let ds = await tbDocMay(), nguon = 'may';
+    if (S.data) { try { const sv = await api({ action: 'tbds' }); if (Array.isArray(sv)) { ds = sv; nguon = 'sv'; } } catch (e) {} }
+    TBL.ds = ds.filter((x) => x && x.t).sort((a, b) => b.t - a.t); TBL.nguon = nguon; paintBell(); if (POV.mode === 'tb') vTB();
+  })().finally(() => { tbDangTai = null; });
+  return tbDangTai;
+}
+const tgian = (ms) => { const d = new Date(ms), p = (n) => String(n).padStart(2, '0'), hn = new Date(), hq = new Date(hn - 864e5); return (d.toDateString() === hn.toDateString() ? 'Hôm nay' : d.toDateString() === hq.toDateString() ? 'Hôm qua' : p(d.getDate()) + '/' + p(d.getMonth() + 1)) + ' · ' + p(d.getHours()) + ':' + p(d.getMinutes()); };
 function vTB() {
   $('#pov-t').textContent = 'Thông báo';
-  const on = tbDaBat(), chan = coTB() && Notification.permission === 'denied';
-  $('#pres').innerHTML = `${laIOS && !laApp() ? `<div class="note"><b>iPhone cần mở app từ màn hình chính</b><br>1. Mở link app bằng Safari<br>2. Bấm nút Chia sẻ › <b>Thêm vào MH chính</b><br>3. Mở app từ biểu tượng Lộc Ấn, vào lại đây bấm Bật thông báo.</div>` : ''}
+  const on = tbDaBat(), chan = coTB() && Notification.permission === 'denied', xem = TBL.xemTruoc;
+  const caiDat = `${laIOS && !laApp() ? `<div class="note"><b>iPhone cần mở app từ màn hình chính</b><br>1. Mở link app bằng Safari<br>2. Bấm nút Chia sẻ › <b>Thêm vào MH chính</b><br>3. Mở app từ biểu tượng Lộc Ấn, vào lại đây bấm Bật thông báo.</div>` : ''}
     <div class="note"><b>${on ? '🔔 Đang bật trên máy này' : '🔕 Chưa bật trên máy này'}</b>${on ? '' : '<br>Bấm nút bên dưới, khi điện thoại hỏi thì chọn <b>Cho phép</b>.'}</div>
     ${TB.msg ? `<div class="note" style="background:var(--okb);color:var(--ok)">${esc(TB.msg)}</div>` : ''}${TB.err ? `<div class="err" style="margin-bottom:10px">${esc(TB.err)}</div>` : ''}
     ${chan ? `<div class="note">Điện thoại đang chặn thông báo của app. iPhone: <b>Cài đặt › Thông báo › Lộc Ấn</b>. Android: <b>Cài đặt › Ứng dụng › Lộc Ấn › Thông báo</b>.</div>` : ''}
     <button class="hgo" id="tb-bat" ${TB.busy ? 'disabled' : ''}>${TB.busy ? 'Đang bật…' : on ? 'Gửi thông báo thử' : 'Bật thông báo'}</button>
     ${on ? '<button class="hgo hgo2" id="tb-tat">Tắt trên máy này</button>' : ''}
     <div class="hlab" style="margin-top:16px">App báo khi</div>
-    <div class="note" style="font-size:13.5px;line-height:1.6">• Có file mới vào đơn (báo cho 2 người còn lại)<br>• Đơn chuyển giai đoạn Bid → Run → Giao hàng<br>• Đơn đã giao và thu đủ, chờ duyệt Done<br>• 8h sáng: đơn trễ hoặc còn ≤ 2 ngày tới hạn giao (anh Nix, anh Tâm)<br><span class="mut">Thông báo chỉ ghi mã đơn, không ghi số tiền.</span></div>`;
+    <div class="note" style="font-size:13.5px;line-height:1.6">• Có file mới vào đơn (báo cho 2 người còn lại)<br>• Đơn chuyển giai đoạn Bid → Run → Giao hàng<br>• Đơn đã giao và thu đủ, chờ duyệt Done<br>• 8h sáng: đơn trễ hoặc còn ≤ 2 ngày tới hạn giao (anh Nix, anh Tâm)<br>• Ghi chú nhanh 📝, đơn mới 🆕, đổi hạn một khâu 📅, xác nhận khâu xong, đặt hạn giao<br><span class="mut">Thông báo chỉ ghi mã đơn, không ghi số tiền.</span></div>`;
+  const list = TBL.ds.length ? TBL.ds.map((x) => `<button class="tbi ${x.t > xem ? 'moi' : ''}" data-tbo="${esc(x.link || '')}"><b>${esc(x.td || 'Lộc Ấn')}</b>${x.nd ? `<span>${esc(x.nd)}</span>` : ''}<small>${tgian(x.t)}</small></button>`).join('')
+    : `<div class="note mut">Chưa có thông báo nào${TBL.nguon === 'may' ? ' trên máy này' : ''}. Từ giờ thông báo gửi tới anh sẽ nằm ở đây, mới nhất ở trên.</div>`;
+  $('#pres').innerHTML = (on ? '' : caiDat) + `<div class="hlab" ${on ? '' : 'style="margin-top:16px"'}>Tất cả thông báo · mới nhất ở trên</div><div class="tbl">${list}</div>` + (on ? `<details class="tbcd"><summary>Cài đặt thông báo trên máy này</summary>${caiDat}</details>` : '');
 }
 /* Sau mỗi lần tải số liệu */
 function daTai(first) {
   if (window.__MOCK) return;
-  paintHopBtn(); paintBell();
+  paintHopBtn(); paintBell(); tbTai();
   if (!first) { hopLoad(true); return; }
   const qs = new URLSearchParams(location.search), don = qs.get('don'), chia = qs.has('chia'), hop = qs.has('hop');
   if (don || chia || hop) history.replaceState(null, '', location.pathname);
@@ -1078,7 +1103,8 @@ function daTai(first) {
 }
 document.addEventListener('click', (e) => {
   if (e.target.closest('[data-hop]')) { HOP.err = ''; moP('hop'); return; }
-  if (e.target.closest('[data-tb]')) { TB.err = ''; TB.msg = ''; moP('tb'); return; }
+  if (e.target.closest('[data-tb]')) { TB.err = ''; TB.msg = ''; TBL.xemTruoc = tbXem(); store.set('la-tb-xem', String(Date.now())); moP('tb'); paintBell(); tbTai(); return; }
+  const tbo = e.target.closest('[data-tbo]'); if (tbo) { const u = tbo.dataset.tbo; dongP(); if (u && /[?&](don|hop)\b/.test(u)) moLink(u); return; }
   if (e.target.closest('#pclose')) { dongP(); return; }
   if (e.target.closest('#hgo')) { xepHop(); return; }
   if (e.target.closest('#tb-bat')) { batTB(); return; }
@@ -1123,7 +1149,7 @@ async function lamMoiTatCa() {
   if (await kiemBanMoi()) return;
   load(S.code, true);
   if (S.open) hsLoad(S.open, true, true);
-  hopLoad(false);
+  hopLoad(false); tbTai();
 }
 async function kiemBanMoi() {
   S.kiemLuc = Date.now();

@@ -1,6 +1,6 @@
 /* Lộc Ấn Điều Hành · service worker
  * 1. Android: nhận file chia sẻ từ app khác (Zalo, Gmail, Files…) rồi mở app để xếp vào đơn.
- * 2. Thông báo đẩy (Firebase Cloud Messaging) cho iPhone và Android.
+ * 2. Thông báo đẩy (Firebase Cloud Messaging) cho iPhone và Android; lưu lịch sử thông báo trên máy (Cache 'la-tb').
  * Không lưu tạm giao diện: app luôn lấy bản mới nhất từ mạng.
  */
 const CHIA = 'la-chia';
@@ -34,11 +34,25 @@ self.addEventListener('push', (e) => {
   let p = {};
   try { p = e.data ? e.data.json() : {}; } catch (x) { p = { data: { body: e.data ? e.data.text() : '' } }; }
   const d = Object.assign({}, p.notification || {}, p.data || {});
-  e.waitUntil(self.registration.showNotification(d.title || 'Lộc Ấn', {
-    body: d.body || '', icon: SCOPE + 'icon-192.png', badge: SCOPE + 'icon-192.png',
-    tag: d.tag || undefined, renotify: !!d.tag, data: { link: d.link || '' }
-  }));
+  e.waitUntil(Promise.all([
+    self.registration.showNotification(d.title || 'Lộc Ấn', {
+      body: d.body || '', icon: SCOPE + 'icon-192.png', badge: SCOPE + 'icon-192.png',
+      tag: d.tag || undefined, renotify: !!d.tag, data: { link: d.link || '' }
+    }),
+    luuTB(d)
+  ]));
 });
+
+/* Lưu lịch sử thông báo trên máy (200 cái mới nhất) để chuông trong app hiện lại; báo app đang mở tải lại danh sách */
+async function luuTB(d) {
+  if (d.tag === 'thu') return;
+  try {
+    const c = await caches.open('la-tb'), k = SCOPE + '_tb', r = await c.match(k), ds = r ? await r.json() : [];
+    ds.unshift({ t: Date.now(), td: d.title || 'Lộc Ấn', nd: d.body || '', link: d.link || '', tag: d.tag || '' });
+    await c.put(k, new Response(JSON.stringify(ds.slice(0, 200)), { headers: { 'content-type': 'application/json' } }));
+    (await self.clients.matchAll({ type: 'window', includeUncontrolled: true })).forEach((w) => w.postMessage({ tb: 1 }));
+  } catch (x) {}
+}
 
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();
