@@ -221,6 +221,8 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--son)
 .ck em.y{background:var(--okb);color:var(--ok)}.ck em.n{background:var(--badb);color:var(--bad)}.ck em.o,.ck em.u{background:var(--nga);color:var(--nhat)}
 .ck span{flex:1;line-height:1.35}.ck small{font-size:11px;color:var(--nhat);white-space:nowrap}
 .qup{flex:none;width:32px;height:32px;margin-left:2px;border-radius:16px;border:1.5px solid var(--son);background:#fff;color:var(--son);display:grid;place-items:center;font-size:20px;font-weight:700;line-height:1;cursor:pointer}.qup input{display:none}
+.qmo{flex:none;border:1px solid var(--ke);background:#fff;color:var(--run);border-radius:14px;padding:6px 11px;font-size:12.5px;font-weight:600;cursor:pointer}
+.ck .ckt{display:block;white-space:normal;color:var(--warn)}
 .qup.on{border-color:var(--ke);color:var(--nhat);font-size:11px;font-weight:600;width:auto;padding:0 8px}
 .gsub{font-size:11px;font-weight:700;color:var(--nhat);text-transform:uppercase;letter-spacing:.04em;margin:8px 0 2px 18px}
 .gdd .sl{margin-left:18px}
@@ -434,8 +436,14 @@ function vQT(o) {
   };
   const em = (v, bb) => v === true ? ['y', '✓'] : v === 'cho' ? ['o', '○'] : v === false ? (bb ? ['n', '✕'] : ['o', '○']) : ['u', '…'];
   const dangGui = (k) => HS.up.some((u) => u.ma === o.ma && u.k === k && !u.done && !u.err);
-  const cong = (ten, v, k) => !k || v === true || fail ? '' : dangGui(k) ? '<span class="qup on">đang gửi…</span>' : `<button class="qup" data-qup="${k}" aria-label="Gửi file ${esc(ten)}">＋</button>`;
-  const row = ([ten, v, bb, k]) => { const [c, s] = em(v, bb); return `<div class="ck"><em class="${c}">${s}</em><span>${esc(ten)}</span><small>${v === 'cho' ? 'nút duyệt sắp có' : bb ? 'bắt buộc' : 'không bắt buộc'}</small>${cong(ten, v, k)}</div>`; };
+  /* File sản xuất: còn ＋ để gửi thêm tới khi bước 4 "File sản xuất" được xác nhận đủ; các chứng từ khác có rồi thì thôi ＋ */
+  const fsxDu = (o.steps || []).some((s) => s.so === 4 && s.tt === 'Xong');
+  const conThem = (k, v) => k === 'fsx' && v === true && !fsxDu;
+  /* Đã có file: nút "Mở" (1 file mở luôn; nhiều file → "Mở (n)" lọc Hồ sơ đơn hàng theo loại đó) */
+  const fsOf = (k) => (k && L ? L.filter((x) => x.k === k) : []);
+  const mo = (k) => { const fs = fsOf(k); if (!fs.length) return ''; if (fs.length > 1) return `<button class="qmo" data-qmo="${k}">Mở (${fs.length})</button>`; const x = fs[0]; return `<button class="qmo" ${/^image\//.test(x.loai || '') ? 'data-fview' : 'data-fopen'}="${esc(x.id)}" aria-label="Mở ${esc(x.ten)}">Mở</button>`; };
+  const cong = (ten, v, k) => !k || (v === true && !conThem(k, v)) || fail ? '' : dangGui(k) ? '<span class="qup on">đang gửi…</span>' : `<button class="qup" data-qup="${k}" aria-label="Gửi file ${esc(ten)}">＋</button>`;
+  const row = ([ten, v, bb, k]) => { const [c, s] = em(v, bb), m = mo(k); return `<div class="ck"><em class="${c}">${s}</em><span>${esc(ten)}${conThem(k, v) ? '<small class="ckt">gửi thêm được tới khi đủ file</small>' : ''}</span>${m ? '' : `<small>${v === 'cho' ? 'nút duyệt sắp có' : bb ? 'bắt buộc' : 'không bắt buộc'}</small>`}${m}${cong(ten, v, k)}</div>`; };
   const step = (s) => { const c = s.tt === 'Xong' ? '#2F7A4B' : s.tt === 'Trễ' ? '#B3261E' : s.tt === 'Đang làm' ? '#2B5F9E' : '#D9CFC0'; return `<div class="sl"><i style="background:${c}"></i><b>${esc(s.ten.replace(/^\d+\.\s*/, ''))}</b><span class="tag ${s.tt === 'Xong' ? 't-ok' : s.tt === 'Trễ' ? 't-bad' : s.tt === 'Đang làm' ? 't-run' : 't-idle'}">${esc(s.tt)}</span><small>${esc(s.ai)} · ${s.tt === 'Xong' ? 'xong ' + dm(s.xong) : 'hạn ' + dm(s.hx)}${s.viec ? ' · ' + esc(s.viec) : ''}</small></div>`; };
   const pill = GD.map((g, i) => { const c = fail ? 'f' : i < idx ? 'x' : i === idx ? 'c' : ''; return `<div class="gd ${c}"><i>${c === 'x' ? '✓' : i + 1}</i><span>${g}</span></div>`; }).join('');
   const sec = GD.map((g, i) => {
@@ -560,7 +568,7 @@ function render() {
   document.querySelectorAll('[data-reload]').forEach((b) => b.classList.toggle('spin', !!S.busy));
 }
 
-const APP_VER = '2026-11-27.14'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
+const APP_VER = '2026-11-27.15'; /* đổi mỗi lần sửa giao diện: nút làm mới so bản này với bản trên mạng */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwblndyDtsDnhwyxAc_siFa65IMXNNeua9JWkj9e0XxtTyv8Odyqh2ZXRb3VnCzrSlG/exec';
 /* ---------- Tìm kiếm: gõ không dấu cũng được, tìm trên mọi trạng thái ---------- */
 const SQ = { recent: (() => { try { return JSON.parse(store.get('la-tim') || '[]'); } catch (e) { return []; } })() };
@@ -753,6 +761,7 @@ function chonFile(ma, k, cb) {
 }
 document.addEventListener('click', (e) => {
   const q = e.target.closest('[data-qup]'); if (q && S.open) { chonFile(S.open, q.dataset.qup); return; }
+  const qm = e.target.closest('[data-qmo]'); if (qm && S.open) { HS.loai = qm.dataset.qmo; paintHS(); requestAnimationFrame(() => cuonDen(document.getElementById('hoso'))); return; }
   if (e.target.closest('[data-hsup]') && S.open) { if (!HS.loai) { alert('Anh chọn loại hồ sơ ở ô bên dưới (báo giá, DTKP, file in…) rồi bấm Gửi file.'); return; } chonFile(S.open, HS.loai); }
 });
 function openLb(src) { const d = document.createElement('div'); d.className = 'lbx'; d.innerHTML = `<button aria-label="Đóng">✕</button><img alt="">`; d.querySelector('img').src = src; d.addEventListener('click', () => d.remove()); document.body.appendChild(d); }
@@ -1197,6 +1206,12 @@ function moTB(m) {
   if (!g.ma) return;
   if (!S.data.orders.some((o) => o.ma === g.ma)) { S.moSau = g; toast('Đang mở đơn ' + g.ma + '…'); load(S.code, true); return; }
   denDich(g);
+}
+function cuonDen(el) {
+  const sh = document.querySelector('.sheet'); if (!sh || !el) return;
+  const dau = sh.querySelector('.sh');
+  sh.scrollTop = Math.max(0, el.getBoundingClientRect().top - sh.getBoundingClientRect().top + sh.scrollTop - (dau ? dau.offsetHeight : 0) - 10);
+  el.classList.remove('nhay'); void el.offsetWidth; el.classList.add('nhay');
 }
 function denDich(g) {
   dongP(); dongTim();
